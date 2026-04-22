@@ -29,6 +29,7 @@ import html
 import logging
 logging.basicConfig(level=logging.INFO)
 
+
 # ===== GLOBAL CONFIGURATION (CRITICAL FIX) =====
 # 3D Printing Globals
 COLUMNS = ["No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details", "Status", 
