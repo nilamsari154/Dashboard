@@ -1,0 +1,18 @@
+{
+    "python.defaultInterpreterPath": ".\\\\venv\\\\Scripts\\\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.pylintEnabled": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.extraPaths": [
+        ".\\\\venv\\\\Lib\\\\site-packages",
+        ".\\\\venv\\\\Lib\\\\site-packages\\\\win32",
+        ".\\\\venv\\\\Lib\\\\site-packages\\\\win32\\\\lib"
+    ],
+    "python.linting.pylintArgs": [
+        "--load-plugins=pylint_django",
+        "--disable=import-error",
+        "--disable=undefined-variable",
+        "--disable=missing-module-docstring",
+        "--disable=missing-class-docstring"
+    ]
+}
