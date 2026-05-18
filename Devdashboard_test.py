@@ -15,6 +15,7 @@ from decouple import Config, RepositoryEnv
 import smb.SMBConnection
 from getpass import getpass
 
+
 # =============== 1. CONFIGURATION & CREDENTIALS ===========================
 DOTENV_FILE = ".env"
 env_config = Config(RepositoryEnv(DOTENV_FILE)) if os.path.exists(DOTENV_FILE) else lambda key, default=None: default
@@ -43,8 +44,8 @@ Color_OPTIONS = ["Black", "White", "Grey", "Other"]
 REQUESTS_FILE = "static/Requests.xlsx"
 USER_FILE = "static/user_data.xlsx"
 
-# =============== 2. EMAIL UTILITIES (SMTP & HTML) ===========================
 
+# =============== 2. EMAIL UTILITIES (SMTP & HTML) ===========================
 def create_request_html(record_id, requestor, requestor_email, category, details, quantity=1, material='N/A', color='N/A', target_date=None):
     """Optimized Table-Based HTML for Outlook/Admin Notifications"""
     t_date = target_date.strftime('%d %B %Y') if target_date else datetime.now().strftime('%d %B %Y')
@@ -127,7 +128,6 @@ except Exception as e:
     st.error(f"Drive connection failed: {e}")
     conn = None
 
-# Asset Setup
 if not os.path.exists('static'): os.makedirs('static')                  
 for img in ['devsmets.jpg', 'pv.jpg', 'nica.jpg']:
     path = os.path.join('static', img)
@@ -137,8 +137,33 @@ for img in ['devsmets.jpg', 'pv.jpg', 'nica.jpg']:
 st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
 
 # =============== 5. MAIN UI ===========================
-# --- Landing Page Function ---
 def landing_page():
+    st.markdown("""<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">""", unsafe_allow_html=True)
+
+    st.markdown('<h1 class="main-header">Welcome to BE DEV Dashboard</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subheader">Your Central Hub for Development Resources</p>', unsafe_allow_html=True)
+
+    add_vertical_space(2)
+
+    # --- Introduction Section (Moved here) ---
+    st.markdown(
+        """
+        <p class="description-text">
+        BE DEV Dashboard is a comprehensive and intuitive platform designed to centralize all vital
+        resources for the Development team. In today's fast-paced environment, having immediate access to
+        critical links, comprehensive documentation, and essential tools is paramount. Our mission is to
+        eliminate the time wasted searching for dispersed information, allowing you to focus on innovation
+        and productivity.
+        </p>
+        <p class="description-text">
+        This platform acts as a unified gateway, simplifying your daily workflow by bringing together everything
+        from real-time system monitoring reports to an extensive library of training materials and a curated
+        selection of development tools. We believe that by providing a streamlined and efficient information
+        hub, we can significantly enhance the collective performance and collaborative spirit of our team.
+        </p>
+        """, unsafe_allow_html=True
+    )
+
     st.markdown(
         """
         <style>
@@ -250,68 +275,122 @@ def landing_page():
         unsafe_allow_html=True
     )
 
-    st.markdown("""<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">""", unsafe_allow_html=True)
 
-    st.markdown('<h1 class="main-header">Welcome to BE DEV Dashboard</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subheader">Your Central Hub for Development Resources</p>', unsafe_allow_html=True)
+#    st.markdown("---")
+#    st.markdown('<h2 class="key-features-header">Quick Links:</h2>', unsafe_allow_html=True)
 
-    add_vertical_space(2)
-    # --- Introduction Section (Moved here) ---
-    st.markdown(
-        """
-        <p class="description-text">
-        BE DEV Dashboard is a comprehensive and intuitive platform designed to centralize all vital
-        resources for the Development team. In today's fast-paced environment, having immediate access to
-        critical links, comprehensive documentation, and essential tools is paramount. Our mission is to
-        eliminate the time wasted searching for dispersed information, allowing you to focus on innovation
-        and productivity.
-        </p>
-        <p class="description-text">
-        This platform acts as a unified gateway, simplifying your daily workflow by bringing together everything
-        from real-time system monitoring reports to an extensive library of training materials and a curated
-        selection of development tools. We believe that by providing a streamlined and efficient information
-        hub, we can significantly enhance the collective performance and collaborative spirit of our team.
-        </p>
-        """, unsafe_allow_html=True
-    )
+#   col3, = st.columns(1)
+#    with col3:
+#        st.markdown(
+#            """
+#            <div class="feature-card animate-left">
+#                <h3><i class="fa fa-link"></i> JIRA Dashboard</h3>
+#                <p>Access the JIRA Dashboard for project tracking and management.</p>
+#                <p><a href="https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=32002" target="_blank">Open JIRA Dashboard</a></p>
+#            </div>
+#            """, unsafe_allow_html=True
+#        )
 
-    st.markdown("---")
-    st.markdown('<h2 class="key-features-header">Quick Links:</h2>', unsafe_allow_html=True)
 
-    col3, = st.columns(1)
-    with col3:
-        st.markdown(
-            """
-            <div class="feature-card animate-left">
-                <h3><i class="fa fa-link"></i> JIRA Dashboard</h3>
-                <p>Access the JIRA Dashboard for project tracking and management.</p>
-                <p><a href="https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=32002" target="_blank">Open JIRA Dashboard</a></p>
-            </div>
-            """, unsafe_allow_html=True
-        )
 
-    st.markdown("---")
-    st.markdown('<h2 class="key-features-header">Key Features:</h2>', unsafe_allow_html=True)
+    # ================== CSS Modern & Menarik ==================
+    st.markdown("""
+        <style>
+        .key-features-header {
+            text-align: center;
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            border: none;
+            border-radius: 20px;
+            padding: 28px 24px;
+            margin-bottom: 24px;
+            height: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+
+        .feature-card h3 {
+            color: #1e3a8a;
+            font-size: 1.35rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-card i {
+            font-size: 2rem;
+            color: #3b82f6;
+        }
+
+        .feature-card p {
+            color: #475569;
+            line-height: 1.7;
+            font-size: 1.02rem;
+        }
+
+        /* Animate on scroll effect */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feature-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # ================== Konten ==================
+    st.markdown('<h2 class="key-features-header">Key Features</h2>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(
             """
-            <div class="feature-card animate-left">
+            <div class="feature-card">
                 <h3><i class="fa fa-dashboard"></i> Dashboard Overview</h3>
                 <p>Gain immediate insights with a high-level overview of critical project statuses,
-                important announcements, and recent updates. This section serves as your daily briefing,
-                keeping you informed without the need to navigate through multiple systems. Quickly identify
-                key metrics and prioritize your tasks effectively.</p>
+                    important announcements, and recent updates. This section serves as your daily briefing,
+                    keeping you informed without the need to navigate through multiple systems. Quickly identify
+                    key metrics and prioritize your tasks effectively.</p>
             </div>
-            <div class="feature-card animate-left">
-                <h3><i class="fa fa-area-chart"></i> Data System Monitoring</h3>
+            """, unsafe_allow_html=True
+        )
+
+        st.markdown(
+            """
+            <div class="feature-card">
+                <h3><i class="fa fa-chart-area"></i> Data System Monitoring</h3>
                 <p>Stay on top of system performance and data integrity with direct access to monthly
-                reports for key data systems such as DEVSPACE, PV, and NICA. These reports offer
-                detailed analytics, performance trends, and usage statistics, crucial for proactive
-                maintenance, troubleshooting, and strategic planning to ensure optimal system health.
-                </p>
+                    reports for key data systems such as DEVSPACE, PV, and NICA. These reports offer
+                    detailed analytics, performance trends, and usage statistics, crucial for proactive
+                    maintenance, troubleshooting, and strategic planning to ensure optimal system health.</p>
             </div>
             """, unsafe_allow_html=True
         )
@@ -319,25 +398,29 @@ def landing_page():
     with col2:
         st.markdown(
             """
-            <div class="feature-card animate-right">
-                <h3><i class="fa fa-book"></i> Training & Knowledge Base</h3>
+            <div class="feature-card">
+                <h3><i class="fa fa-book-open"></i> Training & Knowledge Base</h3>
                 <p>Empower yourself with a comprehensive library of general training resources and
-                process-specific training materials. Whether you're onboarding new team members,
-                upskilling existing talent, or seeking quick refreshers, this section provides structured
-                learning paths and readily available documentation for various technical areas. From
-                fundamental concepts to advanced methodologies, continuous learning is just a click away. </p>
-            </div>
-            <div class="feature-card animate-right">
-                <h3><i class="fa fa-gears"></i> Developer Tools & Applications</h3>
-                <p>Streamline your development process with quick and organized access to a wide array
-                of essential development tools and internal applications. Our searchable directory helps
-                you locate and launch the exact tool you need, reducing setup time and integrated development environments to specialized testing utilities
-                and collaboration platforms, everything required for agile development is consolidated here.</p>
+                    process-specific training materials. Whether you're onboarding new team members,
+                    upskilling existing talent, or seeking quick refreshers, this section provides structured
+                    learning paths and readily available documentation for various technical areas. From
+                    fundamental concepts to advanced methodologies, continuous learning is just a click away.</p>
             </div>
             """, unsafe_allow_html=True
         )
 
-    st.success("We're committed to providing a seamless and efficient experience for all Development team members. Explore the different sections using the sidebar navigation to find what you need.")
+        st.markdown(
+            """
+            <div class="feature-card">
+                <h3><i class="fa fa-tools"></i> Developer Tools  </h3>
+                <p>Streamline your development process with quick and organized access to a wide array
+                    of essential development tools and internal applications. Our searchable directory helps
+                    you locate and launch the exact tool you need, reducing setup time and integrated development environments to specialized testing utilities
+                    and collaboration platforms, everything required for agile development is consolidated here.</p>
+            </div>
+            """, unsafe_allow_html=True
+        )
+
 
 #------------------------Data System Monitoring----------------------------------------
 month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -390,7 +473,6 @@ def show_report_month():
     return report_year, report_month, report_month_str
 
 #---------------------------------Data System Monitoring---------------------------------------------------
-#---------------------------------Data System Monitoring---------------------------------------------------
 def data_system_monitoring_page():
     """Displays monthly monitoring images retrieved from the shared drive."""
     report_year, report_month, report_month_str = show_report_month()
@@ -416,8 +498,7 @@ def data_system_monitoring_page():
     try:
         for local_path, remote_filename in image_tasks:
             remote_path = os.path.join(folderName, remote_filename)
-            
-            # Using 'with' ensures the file is closed immediately after writing
+
             with open(local_path, "wb") as temp_file:
                 try:
                     conn.retrieveFile(shareName, remote_path, temp_file)
@@ -434,19 +515,13 @@ def data_system_monitoring_page():
                     elif "NICA" in remote_filename:
                         st.subheader(f"📋 NICA Monthly Monitoring: {report_month_str} {report_year}")
                         st.image(local_path, use_container_width=True)
-                
                 except Exception:
-                    # If a specific file is missing, show a specific warning
                     st.info(f"ℹ️ Report **'{remote_filename}'** is not yet available for this period.")
 
     except Exception as e:
         st.error(f"⚠️ Error accessing monitoring data: {e}")
-
-    # Log current directory for debugging (optional)
-    # print(f"Working Directory: {os.getcwd()}")
-
     print(os.getcwd())
-    # st.subhe # Removed: Incomplete line
+
 
 #------------------------DEV Training---------------------------------------------------------
 def display_resources(resources, unique_key_prefix=""):
