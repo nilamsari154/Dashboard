@@ -1,37 +1,33 @@
-from getpass import getpass
-
 import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.colored_header import colored_header
 from datetime import datetime, timedelta
 import os
-import requests
 import mimetypes
 import socket
-import io
 import json
 import pandas as pd
 import smtplib
 import html
 from email.message import EmailMessage
+import decouple
 from decouple import Config, RepositoryEnv
-from smb.SMBConnection import SMBConnection
+import smb.SMBConnection
+from getpass import getpass
 
 # =============== 1. CONFIGURATION & CREDENTIALS ===========================
-DOTENV_FILE = '.env'
-env_config = Config(RepositoryEnv(DOTENV_FILE))
+DOTENV_FILE = ".env"
+env_config = Config(RepositoryEnv(DOTENV_FILE)) if os.path.exists(DOTENV_FILE) else lambda key, default=None: default
 
-# Load Credentials
-user = env_config.get('UN')
-password = env_config.get('PASSWORD')
-serverName = env_config.get('SERVERNAME')
-shareName = env_config.get('SHARENAME')
-folderName = env_config.get('FOLDERNAME')
-sk = env_config.get('APPKEY')
+# Load Credentials with defaults/fallbacks
+user = str(env_config('UN', default=''))
+password = str(env_config('PASSWORD', default=''))
+serverName = str(env_config('SERVERNAME', default=''))
+shareName = str(env_config('SHARENAME', default=''))
+folderName = str(env_config('FOLDERNAME', default=''))
+sk = str(env_config('APPKEY', default=''))
 
-# SMTP Settings
-SMTP_SERVER = env_config.get('SMTP_SERVER', default=serverName) 
+SMTP_SERVER = env_config('SMTP_SERVER', default=serverName or 'smtp.infineon.com')
 
 # Table Structures
 COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details", "Status", 
@@ -94,7 +90,7 @@ def send_email_alt(subject, html_body, to_emails, attachment=None):
             with open(attachment, 'rb') as f:
                 msg.add_attachment(f.read(), maintype='application', subtype='octet-stream', filename=os.path.basename(attachment))
 
-        with smtplib.SMTP(SMTP_SERVER, 587) as server:
+        with smtplib.SMTP(host=str(SMTP_SERVER), port=587) as server:
             server.starttls()
             server.login(user, password)
             server.send_message(msg)
@@ -122,10 +118,9 @@ def load_Requests():
         return pd.DataFrame(columns=COLUMNS)
 
 # =============== 4. SYSTEM INITIALIZATION ===========================
-
 # Shared Drive Connection
 try:
-    conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
+    conn = smb.SMBConnection.SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
     ip_address = socket.gethostbyname(serverName)
     conn.connect(ip_address, 139)
 except Exception as e:
@@ -133,7 +128,7 @@ except Exception as e:
     conn = None
 
 # Asset Setup
-if not os.path.exists('static'): os.makedirs('static')
+if not os.path.exists('static'): os.makedirs('static')                  
 for img in ['devsmets.jpg', 'pv.jpg', 'nica.jpg']:
     path = os.path.join('static', img)
     if not os.path.exists(path):
@@ -1144,19 +1139,6 @@ def eform_page():
             st.error(f"Error saving user data: {e}")
             return False
 
-    @st.cache_data(ttl=300)
-    def get_Requestor_email_from_Username_cached(Username: str, user_df: pd.DataFrame):
-        if not Username or user_df.empty:
-            return f"{Username}@infineon.com"
-        try:
-            mask = user_df['Username'].astype(str).str.lower() == str(Username).lower()
-            if mask.any():
-                email = user_df.loc[mask, 'Requestor_email'].iloc[0]
-                return normalize_Requestor_email(str(email))
-        except:
-            pass
-        return f"{Username}@infineon.com"
-
     ## ENHANCED OUTLOOK EMAIL FUNCTIONS (IMPROVED HTML BODIES)
     def normalize_email(email: str, domain: str = "infineon.com") -> str:
         """Normalize and validate email address"""
@@ -1199,15 +1181,6 @@ def eform_page():
                         subtype='octet-stream',
                         filename=os.path.basename(attachment)
                     )
-
-            # Send via SMTP
-            with smtplib.SMTP(SMTP_SERVER, 587) as server:
-                server.starttls()
-                server.login(user, password)
-                server.send_message(msg)
-                
-            print(f"[EMAIL] ✅ Sent to {to_emails}")
-            return True, "Email sent successfully!"
 
         except Exception as e:
             print(f"[EMAIL] ❌ Failed: {e}")
@@ -1252,13 +1225,6 @@ def eform_page():
                     subtype='octet-stream', 
                     filename=file_name
                 )
-
-            # 4. Send via SMTP Server
-            # Ensure SMTP_SERVER is defined (e.g., SMTP_SERVER = env_config.get('SMTP_SERVER'))
-            with smtplib.SMTP(SMTP_SERVER, 587) as server:
-                server.starttls()  # Secure connection
-                server.login(user, password)
-                server.send_message(msg)
 
             print(f"[EMAIL] ✅ Requestor Email Sent to {to_Requestor_emails}")
             return True, "Email sent successfully!"
@@ -2478,7 +2444,7 @@ def eform_page():
             with col1:
                 requestor = st.text_input("Requestor Name", value=Username.title(), disabled=True)
             with col2:
-                requestor_email = st.text_input("Requestor Email", value=requestor_email, disabled=True)
+                requestor_email = st.text_input("Requestor Email", value=EmailMessage, disabled=True)
 
             col3, col4 = st.columns(2)
             with col3:
@@ -2828,8 +2794,8 @@ def eform_page():
                                              index=0 if row['Role'] == "User" else 1, key="box2")
 
                 if st.form_submit_button("💾 Save Changes", type="primary"):
-                    st.session_state.user_df.at[idx, 'Username'] = edit_name.strip()
-                    st.session_state.user_df.at[idx, 'Requestor_email'] = edit_email.strip()
+                    st.session_state.user_df.at[idx, 'Username'] = (edit_name or '').strip()
+                    st.session_state.user_df.at[idx, 'Requestor_email'] = (edit_email or '').strip()
                     st.session_state.user_df.at[idx, 'Role'] = edit_role
 
                     if save_user_data(st.session_state.user_df):
@@ -3024,7 +2990,7 @@ def eform_page():
     </style>
     """, unsafe_allow_html=True)
     
-    st.session_state == "Home"
+    st.session_state.current_page = "Home"
     st.markdown("""
         <style>
             [data-testid="stTab"] {
