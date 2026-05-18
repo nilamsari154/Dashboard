@@ -100,7 +100,6 @@ def send_email_alt(subject, html_body, to_emails, attachment=None):
         return False, str(e)
 
 # =============== 3. DATA HANDLING ===========================
-
 def ensure_file_exists(file_path):
     if not os.path.exists(file_path):
         os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
@@ -1011,15 +1010,10 @@ def dev_tools_page():
         """,
         unsafe_allow_html=True
     )
-    # Load Font Awesome (essential for icons)
-    st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">', unsafe_allow_html=True)
-
 
     # --- Search Section ---
     st.header("Development Tools")
     st.info("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
-    #color_name="blue-30",
- 
     add_vertical_space(2)
 
     search_col, _ = st.columns([0.3, 0.7])
@@ -1042,13 +1036,11 @@ def dev_tools_page():
 
 
     # --- Card Grid Display (4 Columns) ---
-    num_cols = 4 # Changed to 4 columns as per your request
+    num_cols = 4 
     link_items = list(filtered_links.items())
     num_rows = (len(link_items) + num_cols - 1) // num_cols
 
     for i in range(num_rows):
-        # Using no 'gap' parameter or 'gap="small"' for tighter column spacing
-        # As per the image, the spacing between columns is not very large.
         cols = st.columns(num_cols) 
         for j in range(num_cols):
             index = i * num_cols + j
@@ -1180,7 +1172,6 @@ def eform_page():
                 return pd.DataFrame(columns=COLUMNS)
             df = pd.read_excel(REQUESTS_FILE, dtype=str)
             df['No'] = df['No'].astype(str)
-            # Drop unexpected columns like 'Username', keep only known
             df = df.reindex(columns=COLUMNS, fill_value='')
             return clean_dataframe(df, COLUMNS)
         except Exception as e:
