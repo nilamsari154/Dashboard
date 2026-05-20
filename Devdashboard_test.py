@@ -1,3 +1,5 @@
+from logging import Filter
+
 import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_extras.add_vertical_space import add_vertical_space
@@ -117,12 +119,15 @@ def load_Requests():
         st.error(f"Error loading requests: {e}")
         return pd.DataFrame(columns=COLUMNS)
 
+
+
+
 # =============== 4. SYSTEM INITIALIZATION ===========================
 # Shared Drive Connection
 try:
     conn = smb.SMBConnection.SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
     ip_address = socket.gethostbyname(serverName)
-    conn.connect(ip_address, 139)
+    conn.connect(ip_address, 445)
 except Exception as e:
     st.error(f"Drive connection failed: {e}")
     conn = None
@@ -134,6 +139,54 @@ for img in ['devsmets.jpg', 'pv.jpg', 'nica.jpg']:
         with open(path, "wb") as f: pass
 
 st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
+
+# ====================== GLOBAL CSS (Letakkan di sini) ======================
+st.markdown("""
+<style>
+    /* ===== GLOBAL ===== */
+    .main-header { font-size: 4.0rem; text-align: center; color: #007bff; font-weight: 700; margin: 20px 0; }
+    .subheader { font-size: 2rem; text-align: center; color: #333; margin-bottom: 30px; }
+    
+    /* Feature Cards */
+    .feature-card {
+        background: linear-gradient(145deg, #ffffff, #f8fafc);
+        border-radius: 20px;
+        padding: 28px 24px;
+        margin-bottom: 24px;
+        height: 100%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .feature-card:hover {
+        transform: translateY(-12px);
+        box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
+    }
+    .feature-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    }
+    .feature-card h3 {
+        color: #1e3a8a; font-size: 1.4rem; margin-bottom: 16px;
+        display: flex; align-items: center; gap: 12px;
+    }
+    .feature-card i { font-size: 3.5rem; color: #3b82f6; }
+    .feature-card p { color: #475569; line-height: 1.9; }
+
+    /* Key Features Header */
+    .key-features-header {
+        text-align: left;
+        font-size: 3.0rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: #1e3a8a;
+        margin: 40px 0;
+    }
+
+</style>
+""", unsafe_allow_html=True)
 
 # =============== 5. MAIN UI ===========================
 def landing_page():
@@ -163,117 +216,6 @@ def landing_page():
         """, unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
-        <style>
-        .main-header {
-            font-size: 4em;
-            text-align: center;
-            color: #007bff; /* Blue color */
-            margin-bottom: 20px;
-            font-weight: bold;
-            animation: fadeIn 2s ease-in-out; /* Fade-in animation */
-        }
-        .subheader {
-            font-size: 2.8em;
-            text-align: center;
-            color: #333;
-            margin-bottom: 15px;
-            animation: slideInUp 1.5s ease-out; /* Slide-in from bottom animation */
-        }
-        .description-text {
-            font-size: 4.2em;
-            line-height: 1.6;
-            color: #555;
-            text-align: justify;
-            margin-bottom: 15px;
-        }
-        .key-features-header {
-            font-size: 2.2em; /* Slightly larger for emphasis */
-            color: #007bff;
-            margin-bottom: 10px; /* More space below header */
-            font-weight: bold;
-            text-align: left; /* Keep left-aligned */
-            animation: fadeIn 1.5s ease-in-out; /* Add fade-in for this header too */
-        }
-        .feature-card {
-            background-color: #f0f2f6; /* Card background color */
-            border-radius: 20px;
-            padding: 25px; /* Slightly more padding */
-            margin-bottom: 25px; /* More space between cards */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.5s ease, transform 0.5s ease; /* Added opacity and transform for slide-in */
-            min-height: 300px; /* Explicit minimum height for consistency */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; /* Align content to the top */
-            opacity: 0; /* Start hidden for slide-in animation */
-            transform: translateY(20px); /* Start slightly below for slide-in */
-        }
-        .feature-card:hover {
-            transform: translateY(-5px); /* Move slightly up on hover */
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-        .feature-card h3 {
-            color: #0A8276; /* Feature title color */
-            margin-bottom: 15px; /* More space below title */
-            font-size: 1.6em; /* Slightly larger title */
-            display: flex;
-            align-items: center; /* Align icon and text vertically */
-        }
-        .feature-card p {
-            font-size: 1.05em; /* Slightly larger text */
-            color: #666;
-            line-height: 1.6; /* Improve readability */
-        }
-        .feature-card i {
-            margin-right: 12px; /* More space between icon and text */
-            color: #0A8276;
-            font-size: 1.8em; /* Slightly larger icon */
-            transition: transform 0.3s ease, color 0.3s ease; /* Added transition for icon */
-        }
-        .feature-card:hover i {
-            transform: scale(1.1); /* Slightly enlarge icon on hover */
-            color: #0056b3; /* Change color on hover (darker blue) */
-        }
-
-        /* Keyframe animations */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideInUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes slideInFromLeft {
-            from { transform: translateX(-50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideInFromRight {
-            from { transform: translateX(50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Animation for individual feature cards */
-        .feature-card.animate-left {
-            animation: slideInFromLeft 0.8s ease-out forwards;
-        }
-        .feature-card.animate-right {
-            animation: slideInFromRight 0.8s ease-out forwards;
-        }
-
-        /* Adding animation delays for staggered effect */
-        .feature-card:nth-child(1) { animation-delay: 0.2s; }
-        .feature-card:nth-child(2) { animation-delay: 0.4s; }
-        .feature-card:nth-child(3) { animation-delay: 0.6s; } /* If you add more cards */
-        .feature-card:nth-child(4) { animation-delay: 0.8s; } /* If you add more cards */
-
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
 
 #    st.markdown("---")
 #    st.markdown('<h2 class="key-features-header">Quick Links:</h2>', unsafe_allow_html=True)
@@ -290,81 +232,8 @@ def landing_page():
 #            """, unsafe_allow_html=True
 #        )
 
-
-
-    # ================== CSS Modern & Menarik ==================
-    st.markdown("""
-        <style>
-        .key-features-header {
-            text-align: center;
-            font-size: 2.8rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 40px;
-        }
-
-        .feature-card {
-            background: linear-gradient(145deg, #ffffff, #f8fafc);
-            border: none;
-            border-radius: 20px;
-            padding: 28px 24px;
-            margin-bottom: 24px;
-            height: 100%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-12px);
-            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa);
-        }
-
-        .feature-card h3 {
-            color: #1e3a8a;
-            font-size: 1.35rem;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .feature-card i {
-            font-size: 2rem;
-            color: #3b82f6;
-        }
-
-        .feature-card p {
-            color: #475569;
-            line-height: 1.7;
-            font-size: 1.02rem;
-        }
-
-        /* Animate on scroll effect */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .feature-card {
-            animation: fadeInUp 0.6s ease forwards;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # ================== Konten ==================
+# ================== Konten ==================
+    st.markdown("---")
     st.markdown('<h2 class="key-features-header">Key Features</h2>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
@@ -411,7 +280,7 @@ def landing_page():
         st.markdown(
             """
             <div class="feature-card">
-                <h3><i class="fa fa-tools"></i> Developer Tools  </h3>
+                <h3><i class="fa fa-tools"></i> Dev Tools  </h3>
                 <p>Streamline your development process with quick and organized access to a wide array
                     of essential development tools and internal applications. Our searchable directory helps
                     you locate and launch the exact tool you need, reducing setup time and integrated development environments to specialized testing utilities
@@ -571,7 +440,6 @@ def display_resources(resources, unique_key_prefix=""):
                         cols[j].error(f"Material not found: {file_path}")
 
 def training_page():
-    # Inject CSS for animations and styling
     st.markdown(
         """
         <style>
@@ -872,7 +740,7 @@ def training_page():
 
 #---------------------------------Dev Tools---------------------------------------------------------------------------
 def dev_tools_page():
-    # --- CUSTOM CSS TO ACHIEVE THE IMAGE-LIKE UI WITH SMALLER, TIDIER CARDS AND 4 COLUMNS ---
+    st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">', unsafe_allow_html=True)
     st.markdown(
         """
         <style>
@@ -1016,24 +884,60 @@ def dev_tools_page():
     st.info("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
     add_vertical_space(2)
 
-    search_col, _ = st.columns([0.3, 0.7])
+# ================== NEW: CATEGORY FILTER ==================
+    category_options = [
+        "Select Categories", 
+        "Administrative", 
+        "Digitalization of Process Data", 
+        "General", 
+        "Insight & Report", 
+        "Planning & Scheduling", 
+        "Project Management", 
+        "Unit Process Management"
+    ]
+    
 
-    with search_col:
-        search_query = st.text_input("**Search Tools**:", "", help="Type the name of the tool you want to search for...")
+    col_filter1, col_filter2 = st.columns([0.5, 1.0])
+    with col_filter1:
+        search_query = st.text_input("**Search Tools**:", "", help="Type the name of the tool you want to search for...", key="search_input")
 
+    with col_filter2:
+        selected_category = st.selectbox("**Filter by Sub-Pillar**", category_options, key="cat_filter")
+    
+
+
+    # ================== FILTERING LOGIC (Minimal Change) ==================
     filtered_links = {}
-    if search_query:
-        search_query_lower = search_query.lower()
-        for name, data in links.items():
-            if search_query_lower in name.lower():
-                filtered_links[name] = data
-    else:
-        filtered_links = links
+    search_query_lower = search_query.lower().strip()
+
+    for name, data in links.items():
+        match_search = (not search_query_lower) or (search_query_lower in name.lower())
+        
+        # Category matching logic
+        match_category = True
+        if selected_category != "Sub-Pillar":
+            name_lower = name.lower()
+            if selected_category == "Administrative":
+                match_category = any(kw in name_lower for kw in ["bat attire", "bat permission", "concur", "ct300", "esh", "my it", "my leave", "nostas", "visit", "yip", "dev tooling"])
+            elif selected_category == "Digitalization of Process Data":
+                match_category = any(kw in name_lower for kw in ["component task", "e-archive", "icrum", "idpf", "ifact", "insig", "nica", "opcenter", "picture viewer", "plm", "tddb"])
+            elif selected_category == "General":
+                match_category = any(kw in name_lower for kw in ["abbreviation", "fol magazine", "gpt4ifx", "ifx intranet", "ifx worldwide", "lab manager", "raven", "bat oe application", "integration request"])
+            elif selected_category == "Insight & Report":
+                match_category = any(kw in name_lower for kw in ["tableau", "beats", "halo", "ip portal", "oee", "pdr", "spiral", "statistical", "opcenter ods"])
+            elif selected_category == "Planning & Scheduling":
+                match_category = any(kw in name_lower for kw in ["DEVSMETS", "MyMD", "PDA Wafer", "Equipment Reservation"])
+            elif selected_category == "Project Management":
+                match_category = any(kw in name_lower for kw in ["FMEA", "iProjEx", "KLUSA", "PLATO", "Project Document", "Team Center", "PBC"])
+            elif selected_category == "Unit Process Management":
+                match_category = any(kw in name_lower for kw in ["PBHB"])
+
+        if match_search and match_category:
+            filtered_links[name] = data
 
     if not filtered_links:
         st.info("No tools found for your search")
         return
-
 
     # --- Card Grid Display (4 Columns) ---
     num_cols = 4 
@@ -1065,33 +969,31 @@ links = {
     "MY LEAVE": {"link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", "icon": "paper-plane"},
     "MY IT": {"link": "https://webnetprod.muc.infineon.com/MyIT/", "icon": "windows"},
     "PICTURE VIEWER": {"link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", "icon": "image"},
-    "Opcenter Portal": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
-    "Opcenter Shopfloor UI": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
+    "Opcenter Portal (CAMSTAR Setup)": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
+    "Opcenter Shopfloor (CAMSTAR UI)": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
     "KLUSA": {"link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", "icon": "code"},
-    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa", "icon": "calendar"},
-    "PROJECT DOCUMENT": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
-    "PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
+    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", "icon": "calendar"},
+    "RDE Dashboard": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
+    "PBC with PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
     "FMEA": {"link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", "icon": "table"},
-    "OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
-    "Attire System": {"link": "https://attire.bth.infineon.com/Home", "icon": "user"},
-    "Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
+    "BAT OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
+    "BAT Attire & Locker": {"link": "https://apps.bth.infineon.com/attiresystem", "icon": "user"},
+    "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
     "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
     "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
-    "IFBT DEV SYSTEM": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "server"},
+    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "server"},
     "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
-    "PDR+": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
+    "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
     "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
     "iFAct": {"link": "https://ifact.sin.infineon.com/myjobs", "icon": "flask"},
-    "Batam Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
-    "Opcenter ODS Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
-    "INSiG - AOI Log Data " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
-    "eArchive" : {"link": "https://efilestore.bth.infineon.com/earchive_retrieval/Logon.aspx", "icon": "cloud-upload"},
+    "BAT Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
+    "Opcenter ODS Report (BAT)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
+    "inSig (AOI Log Data) " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
     "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
     "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
     "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
-    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "group"},
+    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "person"},
     "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
-    "Process Block Catalogue": {"link": "https://webnetprod.muc.infineon.com/PBCatalogue/Default.aspx", "icon": "cube"},
     "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
     "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
     "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},    
@@ -1101,15 +1003,18 @@ links = {
     "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
     "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
     "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
-    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb-o"},
+    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb"},
     "NOSTAS Request" : {"link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", "icon": "file-text"},
     "MyMD" : {"link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", "icon": "barcode"},
     "iProjEx" : {"link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", "icon": "key"},
     "Team Center" : {"link": "https://teamcenterhome.infineon.com/nermal.shtml", "icon": "star"},
     "Basic Evaluation in Automated Test System (BEAST)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", "icon" : "building"},
-    "TDDB Dashboard": {"link": "https://insig-aoi-report-,automation.ap-sg-1.icp.infineon.com/", "icon" : "desktop"},
     "Component Task Tracking (CTT)": {"link": "https://ctt.intra.infineon.com/RequestAccess", "icon" : "tasks"},
-    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"}  
+    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"},
+    "RAVEN": {"link": "https://raven.icp.infineon.com/", "icon" : "shield-alt"},
+    "FOL Magazine Check": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", "icon" : "clipboard-check"},
+    "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
+    "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
 }
 
 
