@@ -627,7 +627,6 @@ def training_page():
 
     # Call display_resources to show general training items with animations
     display_resources(general_training_resources, "general")
-
     add_vertical_space() 
 
     # --- Training Material & Process Knowledge Section ---
@@ -658,7 +657,6 @@ def training_page():
         },
 
         "A2 Plating": {
-            "PBHB": {"link": "", "display_name": "PBHB"},
             "Process": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fdev%2Ddashboard%2FShared%20Documents%2FA2%20Plating%2FProcess", "display_name": "Process"},
             "Equipment Process Specification": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fdev%2Ddashboard%2FShared%20Documents%2FA2%20Plating%2FEquipment%20Process%20Sepcification", "display_name": "Equipment Process Specification"}
         },
@@ -672,7 +670,6 @@ def training_page():
         },
 
         "CD-Plating": {
-            "PBHB": {"link": "", "display_name": "PBHB"},
             "Process":
             {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/CD-PL/Process", "display_name": "Process"},
             "Equipment Process Specification":
@@ -704,8 +701,6 @@ def training_page():
 
     # Iterate through each process and create an expander for each
     for i, (process_name, materials_dict) in enumerate(process_training_materials.items()):
-        # IMPORTANT: Removed 'key' argument from st.expander due to common TypeError in older Streamlit versions.
-        # If you are on Streamlit 1.14.0 or newer, you can re-add `key=f"expander_{process_name.replace(' ', '_')}_{i}"`
         with st.expander(f"**{process_name} Training**", expanded=False):
             if not materials_dict:
                 st.info(f"red:[No training materials available for {process_name} at this time.]")
@@ -733,7 +728,6 @@ def training_page():
                         break
 
                 if selected_material_actual_data:
-                    # Call display_resources to show selected material with animations
                     display_resources(selected_material_actual_data, process_name.replace(" ", "_"))
                 else:
                     st.warning("Material not found.")
@@ -881,7 +875,7 @@ def dev_tools_page():
 
     # --- Search Section ---
     st.header("Development Tools")
-    st.info("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
+    st.write("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
     add_vertical_space(2)
 
 # ================== NEW: CATEGORY FILTER ==================
@@ -981,7 +975,7 @@ links = {
     "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
     "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
     "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
-    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "server"},
+    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "wrench"},
     "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
     "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
     "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
@@ -992,14 +986,14 @@ links = {
     "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
     "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
     "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
-    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "person"},
+    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "users"},
     "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
     "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
     "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
     "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},    
     "IP Portal": {"link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", "icon": "fa fa-lightbulb"},
     "SPIRAL": {"link": "https://spiral.muc.infineon.com/spiral", "icon": "spinner"},
-    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "wrench"},
+    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "comment"},
     "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
     "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
     "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
