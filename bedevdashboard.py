@@ -28,12 +28,13 @@ from typing import Optional
 import sys
 from email.mime.base import MIMEBase
 from email import encoders
+import html
+
 
 
 # =============== CONFIGURATION ===========================
-COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details",
-           "Status",
-           "Status Start Time", "Quantity", "Material", "Color", "Completed Date", "Status History", "Admin Comments"]
+COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details", "Status",
+"Status Start Time", "Quantity", "Material", "Color", "Completed Date", "Status History", "Admin Comments"]
 
 USER_COLUMNS = ["User_ID", "Username", "Requestor_email", "Role", "Domain", "Active"]
 Category_OPTIONS = ["Innovation", "Spare Part Replacement", "YIP/Improvement", "Others"]
@@ -55,7 +56,6 @@ print(folderName)
 sk = env_config.get('APPKEY')
 password = env_config.get('PASSWORD')
 sender="sinbedevdigiz@infineon.com"
-
 
 
 FILE_PATH_request ="dashboard_db/Requests.xlsx"
@@ -318,14 +318,11 @@ def send_email_notification(send_to,password, email_subject, body_html, uploaded
     else:
         print("\n✗ Email sending failed.")
 
-
-
 def ensure_file_exists(file_path):
     if not os.path.exists(file_path):
         os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
         cols = COLUMNS if "Requests" in file_path else USER_COLUMNS
         pd.DataFrame(columns=cols).to_excel(file_path, index=False)
-
 
 def clean_dataframe(df, columns):
     """Unified data cleaning pipeline"""
@@ -348,7 +345,6 @@ def clean_dataframe(df, columns):
 
     return df
 
-
 def get_logged_in_user():
     headers = st.context.headers
     email_get=headers.get("X-Forwarded-Email")
@@ -370,6 +366,7 @@ def get_email_from_username(username, df):
     if not match.empty:
         return match.iloc[0]["Requestor_email"]
     return None
+
 
 
 st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
@@ -512,8 +509,7 @@ def landing_page():
 
 
 # ------------------------Data System Monitoring----------------------------------------
-month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-               "November", "December"]
+month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 image_dict = {
     "DEVSPACE": {
@@ -538,7 +534,6 @@ image_dict = {
         for year in range(2023, 2050)
     }
 }
-
 
 def show_report_month():
     st.header("Data System Monitoring")
@@ -605,6 +600,7 @@ def data_system_monitoring_page():
 
     print(os.getcwd())
 
+
 # ------------------------DEV Training---------------------------------------------------------
 def display_resources(resources, unique_key_prefix=""):
     num_cols = 3
@@ -655,7 +651,6 @@ def display_resources(resources, unique_key_prefix=""):
                         cols[j].error(f"Material not found: {file_path}")
 
 def training_page():
-    # Inject CSS for animations and styling
     st.markdown(
         """
         <style>
@@ -1003,7 +998,6 @@ def training_page():
                     st.warning("Material not found.")
 
 
-
 # ---------------------------------Dev Tools---------------------------------------------------------------------------
 links = {
     "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
@@ -1057,7 +1051,6 @@ links = {
     "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
     "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
 }
-
 
 def dev_tools_page():
     st.markdown(
@@ -1265,6 +1258,7 @@ def eform_page():
                 return False
         return True
     @st.cache_data(ttl=300)
+    
     def send_outlook_Requestor_email(to_Requestor_emails, subject, html_body, attach=None):
         try:
             if not to_Requestor_emails:
@@ -1292,10 +1286,9 @@ def eform_page():
             print(f"[EMAIL] Failed: {e}")
             return False, f"Failed to send email: {e}"
 
-    import html
 
-    def create_enhanced_new_request_html(record_id, requestor, requestor_email, category, details, quantity=1,
-                                         material='N/A', color='N/A', target_date=None):
+
+    def create_enhanced_new_request_html(record_id, requestor, requestor_email, category, details, quantity=1, material='N/A', color='N/A', target_date=None):
         """Enhanced responsive HTML for new request notifications"""
         target_date_str = target_date.strftime('%d %B %Y') if target_date else datetime.now().strftime('%d %B %Y')
         safe_details = html.escape(str(details))[:800] + ("..." if len(str(details)) > 800 else "")
