@@ -368,7 +368,6 @@ def get_email_from_username(username, df):
     return None
 
 
-
 st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
 
 def landing_page():
