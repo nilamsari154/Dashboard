@@ -372,13 +372,8 @@ def get_email_from_username(username, df):
     return None
 
 
-# Create empty file objects for writing image contents
-# Ensure the 'static' directory exists
-
 st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
 
-
-# --- Landing Page Function ---
 def landing_page():
     # Hero Section
     st.markdown("""
@@ -574,34 +569,41 @@ def data_system_monitoring_page():
     report_year, report_month, report_month_str = show_report_month()
     try:
       if conn is not None:
-        with open('static/devsmets.jpg', "wb") as dev_im_temp:
-            res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                                                                                  f'DEVSPACE_{report_month_str}_{report_year}.jpg'),
-                                                          dev_im_temp) 
-        with open('static/pv.jpg', "wb") as pv_im_temp:
-            res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                                                                                  f'PV_{report_month_str}_{report_year}.jpg'),
-                                                          pv_im_temp)
-        with open('static/nica.jpg', "wb") as nica_im_temp:
-            res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                                                                                  f'NICA_{report_month_str}_{report_year}.jpg'),
-                                                          nica_im_temp)
+        try:
+            with open('static/devsmets.jpg', "wb") as dev_im_temp:
+                res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName), f'DEVSPACE_{report_month_str}_{report_year}.jpg'), dev_im_temp) 
+        except FileNotFoundError:
+            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
+            return  # Exit the function if the image is not found
+        try:                                                 
+            with open('static/pv.jpg', "wb") as pv_im_temp:
+                res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(str(folderName),
+                f'PV_{report_month_str}_{report_year}.jpg'), pv_im_temp)
+        except FileNotFoundError:
+            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
+            return  # Exit the function if the image is not found
+
+        try:
+            with open('static/nica.jpg', "wb") as nica_im_temp:
+                res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(str(folderName),
+                f'NICA_{report_month_str}_{report_year}.jpg'), nica_im_temp)
+        except FileNotFoundError:
+            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
+            return  # Exit the function if the image is not found
 
         st.markdown("---")
         st.subheader(f"Devspace Monthly Monitoring report for {report_month_str}")
-        st.image('static/devsmets.jpg')  # Display image from the static folder
+        st.image('static/devsmets.jpg')  
         st.markdown("---")
         st.subheader(f"PV Monthly Monitoring report for {report_month_str}")
-        st.image('static/pv.jpg')  # Display image from the static folder
+        st.image('static/pv.jpg')  
         st.markdown("---")
         st.subheader(f"NICA Monthly Monitoring report for {report_month_str}")
-        st.image('static/nica.jpg')  # Display image from the static folder
+        st.image('static/nica.jpg') 
     except FileNotFoundError:
         st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
 
     print(os.getcwd())
-    # st.subhe # Removed: Incomplete line
-
 
 # ------------------------DEV Training---------------------------------------------------------
 def display_resources(resources, unique_key_prefix=""):
@@ -651,7 +653,6 @@ def display_resources(resources, unique_key_prefix=""):
                             )
                     else:
                         cols[j].error(f"Material not found: {file_path}")
-
 
 def training_page():
     # Inject CSS for animations and styling
@@ -1002,7 +1003,7 @@ def training_page():
                     st.warning("Material not found.")
 
 
-# ---------------------------------Dev Tools---------------------------------------------------------------------------
+
 # ---------------------------------Dev Tools---------------------------------------------------------------------------
 links = {
     "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
@@ -1155,60 +1156,6 @@ def dev_tools_page():
                     </a>
                 ''', unsafe_allow_html=True)
 
-
-# ---------------------------------Dev Tools---------------------------------------------------------------------------
-links = {
-    "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
-    "MY LEAVE": {"link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", "icon": "paper-plane"},
-    "MY IT": {"link": "https://webnetprod.muc.infineon.com/MyIT/", "icon": "windows"},
-    "PICTURE VIEWER": {"link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", "icon": "image"},
-    "Opcenter Portal (CAMSTAR Setup)": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
-    "Opcenter Shopfloor (CAMSTAR UI)": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
-    "KLUSA": {"link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", "icon": "code"},
-    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", "icon": "calendar"},
-    "RDE Dashboard": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
-    "PBC with PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
-    "FMEA": {"link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", "icon": "table"},
-    "BAT OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
-    "BAT Attire & Locker": {"link": "https://apps.bth.infineon.com/attiresystem", "icon": "user"},
-    "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
-    "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
-    "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
-    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "wrench"},
-    "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
-    "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
-    "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
-    "iFAct": {"link": "https://ifact.sin.infineon.com/myjobs", "icon": "flask"},
-    "BAT Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
-    "Opcenter ODS Report (BAT)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
-    "inSig (AOI Log Data) " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
-    "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
-    "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
-    "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
-    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "users"},
-    "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
-    "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
-    "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
-    "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},
-    "IP Portal": {"link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", "icon": "fa fa-lightbulb"},
-    "SPIRAL": {"link": "https://spiral.muc.infineon.com/spiral", "icon": "spinner"},
-    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "comment"},
-    "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
-    "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
-    "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
-    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb"},
-    "NOSTAS Request" : {"link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", "icon": "file-text"},
-    "MyMD" : {"link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", "icon": "barcode"},
-    "iProjEx" : {"link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", "icon": "key"},
-    "Team Center" : {"link": "https://teamcenterhome.infineon.com/nermal.shtml", "icon": "star"},
-    "Basic Evaluation in Automated Test System (BEATS)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", "icon" : "building"},
-    "Component Task Tracking (CTT)": {"link": "https://ctt.intra.infineon.com/RequestAccess", "icon" : "tasks"},
-    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"},
-    "RAVEN": {"link": "https://raven.icp.infineon.com/", "icon" : "shield-alt"},
-    "FOL Magazine Check": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", "icon" : "clipboard-check"},
-    "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
-    "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
-}
 st.markdown(
     """
     <style>
