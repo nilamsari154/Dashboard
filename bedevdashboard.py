@@ -8,7 +8,7 @@ import requests
 import mimetypes
 from decouple import Config, RepositoryEnv
 import smbclient
-from smb.SMBConnection import *
+from smb.SMBConnection import SMBConnection
 import socket
 import io
 import pandas as pd
@@ -64,7 +64,7 @@ USER_FILE= "static/user_data.csv"
 # Setting up connection with shared drive
 try:
     conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
-    ip_address = socket.gethostbyname(serverName)
+    ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
     print(conn.connect(ip_address, 139))
 except Exception as e:
     st.error(f"Failed to connect to shared drive: {e}")
@@ -76,7 +76,7 @@ def load_Requests():
     try:
         read_buffer = io.BytesIO()
         conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
-        ip_address = socket.gethostbyname(serverName)
+        ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
         print(conn.connect(ip_address, 139))
 
         # Retrieve file binary from file share into the buffer
@@ -197,7 +197,7 @@ class SMTPTester:
                     self.smtp_port,
                     context=context) as server:
                 if self.require_auth:
-                    server.login(self.sender_email, self.sender_password)
+                    server.login(self.sender_email, self.sender_password) if self.sender_password else None
                 server.sendmail(
                     self.sender_email,
                     recipient_email,
@@ -208,7 +208,7 @@ class SMTPTester:
                     context = ssl.create_default_context()
                     server.starttls(context=context)
                 if self.require_auth:
-                    server.login(self.sender_email, self.sender_password)
+                    server.login(self.sender_email, self.sender_password) if self.sender_password else None
                 server.sendmail(
                     self.sender_email,
                     recipient_email,
@@ -237,7 +237,7 @@ class SMTPTester:
                         context=context
                 ) as server:
                     if self.require_auth:
-                        server.login(self.sender_email, self.sender_password)
+                        server.login(self.sender_email, self.sender_password) if self.sender_password else None
                     print(f"✓ Successfully connected to {self.smtp_server}: {self.smtp_port}")
                     return True
             else:
@@ -246,7 +246,7 @@ class SMTPTester:
                         context = ssl.create_default_context()
                         server.starttls(context=context)
                     if self.require_auth:
-                        server.login(self.sender_email, self.sender_password)
+                        server.login(self.sender_email, self.sender_password) if self.sender_password else None
                     print(f"✓ Successfully connected to {self.smtp_server}: {self.smtp_port}")
                     return True
         except smtplib.SMTPAuthenticationError:
@@ -352,7 +352,7 @@ def clean_dataframe(df, columns):
 def get_logged_in_user():
     headers = st.context.headers
     email_get=headers.get("X-Forwarded-Email")
-    email_get= email_get.strip().lower()
+    email_get= email_get.strip().lower() if email_get else None
     return email_get
 
 def load_user_data(csv_path):
@@ -573,16 +573,17 @@ def show_report_month():
 def data_system_monitoring_page():
     report_year, report_month, report_month_str = show_report_month()
     try:
+      if conn is not None:
         with open('static/devsmets.jpg', "wb") as dev_im_temp:
-            res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(folderName,
+            res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName),
                                                                                   f'DEVSPACE_{report_month_str}_{report_year}.jpg'),
-                                                          dev_im_temp)
+                                                          dev_im_temp) 
         with open('static/pv.jpg', "wb") as pv_im_temp:
-            res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(folderName,
+            res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(str(folderName),
                                                                                   f'PV_{report_month_str}_{report_year}.jpg'),
                                                           pv_im_temp)
         with open('static/nica.jpg', "wb") as nica_im_temp:
-            res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(folderName,
+            res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(str(folderName),
                                                                                   f'NICA_{report_month_str}_{report_year}.jpg'),
                                                           nica_im_temp)
 
@@ -595,7 +596,7 @@ def data_system_monitoring_page():
         st.markdown("---")
         st.subheader(f"NICA Monthly Monitoring report for {report_month_str}")
         st.image('static/nica.jpg')  # Display image from the static folder
-    except OperationFailure:
+    except FileNotFoundError:
         st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
 
     print(os.getcwd())
@@ -1266,7 +1267,7 @@ def eform_page():
             read_buffer = io.BytesIO()
             conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName,
                                  use_ntlm_v2=True)
-            ip_address = socket.gethostbyname(serverName)
+            ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
             print(conn.connect(ip_address, 139))
 
             # Retrieve file binary from file share into the buffer
@@ -1734,7 +1735,7 @@ def eform_page():
             # Pre-process data in batch
             conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName,
                                 use_ntlm_v2=True)
-            ip_address = socket.gethostbyname(serverName)
+            ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
             print(conn.connect(ip_address, 139))
             df_clean = df.copy()
             print("printing df before saving request", df_clean.head())
@@ -2705,7 +2706,7 @@ def eform_page():
         if df.empty:
             st.info("No requests found.")
         else:
-            my_requests = df[df['Requestor_email'].str.lower() == st.session_state.current_email.lower()]
+            my_requests = df[df['Requestor_email'].str.lower() == st.session_state.current_email.lower() if st.session_state.current_email else None]
             for _, row in my_requests.iterrows():
                 with st.expander(f"#{row['No']} | {row['Status']}", expanded=False):
                     dynamic_progress_tracker(row)
@@ -2986,8 +2987,8 @@ def eform_page():
                                              index=0 if row['Role'] == "User" else 1, key="box2")
 
                 if st.form_submit_button("💾 Save Changes", type="primary"):
-                    st.session_state.user_df.at[idx, 'Username'] = edit_name.strip()
-                    st.session_state.user_df.at[idx, 'Requestor_email'] = edit_email.strip()
+                    st.session_state.user_df.at[idx, 'Username'] = edit_name.strip() if edit_name else row['Username']
+                    st.session_state.user_df.at[idx, 'Requestor_email'] = edit_email.strip() if edit_email else row['Requestor_email']
                     st.session_state.user_df.at[idx, 'Role'] = edit_role
 
                     if save_user_data(st.session_state.user_df):
@@ -3093,7 +3094,7 @@ def eform_page():
             hide_index=True,
             column_config={
                 "Time": st.column_config.DatetimeColumn("🕒 Time", width="medium"),
-                "Username": st.column_config.TextColumn("👤 Username", width="mediums"),
+                "Username": st.column_config.TextColumn("👤 Username", width="medium"),
                 "Action": st.column_config.TextColumn("🏷️ Action", width="medium"),
                 "Description": st.column_config.TextColumn("📝 Description", width="large")})
 
