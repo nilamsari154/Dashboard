@@ -2,26 +2,19 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from datetime import datetime
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.colored_header import colored_header
 import os
-import requests
 import mimetypes
 from decouple import Config, RepositoryEnv
-import smbclient
 from smb.SMBConnection import SMBConnection
 import socket
 import io
 import pandas as pd
 from datetime import datetime, timedelta
-import os
-import getpass
 import win32com.client
 import pythoncom
-from pythoncom import CoInitialize, CoUninitialize
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 import json
 import ssl
 from typing import Optional
@@ -29,7 +22,8 @@ import sys
 from email.mime.base import MIMEBase
 from email import encoders
 import html
-
+import sys
+from smb.SMBConnection import SMBConnection
 
 
 # =============== CONFIGURATION ===========================
@@ -351,9 +345,10 @@ def get_logged_in_user():
     email_get= email_get.strip().lower() if email_get else None
     return email_get
 
-def load_user_data(csv_path):
+def load_user_data(csv_path=USER_FILE):
     full_path = os.path.abspath(csv_path)
     df = pd.read_csv(full_path, encoding='utf-8')
+    print("Original columns:", df.columns.tolist())
     # Normalize (this avoids 90% of bugs)
     df["Username"] = df["Username"].astype(str).str.strip().str.lower()
     df["Requestor_email"] = df["Requestor_email"].astype(str).str.strip().str.lower()
@@ -513,21 +508,21 @@ month_names = ["January", "February", "March", "April", "May", "June", "July", "
 image_dict = {
     "DEVSPACE": {
         year: {
-            month: f"DEVSPACE_{month_names[month - 1]}_{year}.jpg"
+            month: f"DEVSPACE_{month_names[month - 1]}_{year}.JPG"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
     },
     "NICA": {
         year: {
-            month: f"NICA_{month_names[month - 1]}_{year}.jpg"
+            month: f"NICA_{month_names[month - 1]}_{year}.JPG"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
     },
     "PV": {
         year: {
-            month: f"PV_{month_names[month - 1]}_{year}.jpg"
+            month: f"PV_{month_names[month - 1]}_{year}.JPG"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
@@ -551,49 +546,50 @@ def show_report_month():
 
     report_year = st.selectbox("Select Year", range(this_year, this_year - 3, -1), key="box8")
     report_month_str = st.radio(
-        "Select Month", month_names, index=this_month - 1, horizontal=True
+        "Select Month", month_names, index=this_month - 3, horizontal=True
     )
     print(" report_month_str", report_month_str)
-    report_month = month_names.index(report_month_str) + 1
-    return report_year, report_month, report_month_str
+    report_month = month_names.index(report_month_str) + 1  # Convert month name to month number
+    return report_year, report_month_str
+
 
 
 # ---------------------------------Data System Monitoring---------------------------------------------------
 def data_system_monitoring_page():
-    report_year, report_month, report_month_str = show_report_month()
+    report_year, report_month_str = show_report_month()
     try:
       if conn is not None:
         try:
-            with open('static/devsmets.jpg', "wb") as dev_im_temp:
-                res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName), f'DEVSPACE_{report_month_str}_{report_year}.jpg'), dev_im_temp) 
+            with open('static/devsmets.JPG', "wb") as dev_im_temp:
+                res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName), f'DEVSPACE_{report_month_str}_{report_year}.JPG'), dev_im_temp) 
         except FileNotFoundError:
             st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
             return  # Exit the function if the image is not found
         try:                                                 
-            with open('static/pv.jpg', "wb") as pv_im_temp:
+            with open('static/pv.JPG', "wb") as pv_im_temp:
                 res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                f'PV_{report_month_str}_{report_year}.jpg'), pv_im_temp)
+                f'PV_{report_month_str}_{report_year}.JPG'), pv_im_temp)
         except FileNotFoundError:
             st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
             return  # Exit the function if the image is not found
 
         try:
-            with open('static/nica.jpg', "wb") as nica_im_temp:
+            with open('static/nica.JPG', "wb") as nica_im_temp:
                 res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                f'NICA_{report_month_str}_{report_year}.jpg'), nica_im_temp)
+                f'NICA_{report_month_str}_{report_year}.JPG'), nica_im_temp)
         except FileNotFoundError:
             st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
             return  # Exit the function if the image is not found
 
         st.markdown("---")
         st.subheader(f"Devspace Monthly Monitoring report for {report_month_str}")
-        st.image('static/devsmets.jpg')  
+        st.image('static/devsmets.JPG')  
         st.markdown("---")
         st.subheader(f"PV Monthly Monitoring report for {report_month_str}")
-        st.image('static/pv.jpg')  
+        st.image('static/pv.JPG')  
         st.markdown("---")
         st.subheader(f"NICA Monthly Monitoring report for {report_month_str}")
-        st.image('static/nica.jpg') 
+        st.image('static/nica.JPG') 
     except FileNotFoundError:
         st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
 
@@ -2052,8 +2048,6 @@ def eform_page():
         full_html = "".join(html_parts)
         st.html(full_html)
 
-    # ========================= MAIN APP =========================
-    # st.set_page_config(page_title="3D Core e-form", layout="wide", page_icon="🖨️")
 
     # ====================== IDENTIFIKASI USER & ROLE ======================
     #Username = getpass.getuser().lower()  -- this wont work in Openshift
@@ -2076,19 +2070,15 @@ def eform_page():
     print("role_match", role_match)
     if not role_match.empty:
         st.session_state.current_role= role_match.iloc[0]["Role"]
-        #print("role", st.session_state.current_role)
-
-    #else:
-        # ====================== SIDEBAR ======================
         with st.sidebar:
             st.image(image='static/logo.png')
-            if st.button("🏠 Home", use_container_width=True):  # , width='stretch'):
+            if st.button("🏠 Home", use_container_width=True):  
                 st.session_state.page = "Home"
                 st.rerun()
-            if st.button("📝 New Request", use_container_width=True):  # , width='stretch'):, width='stretch'):
+            if st.button("📝 New Request", use_container_width=True): 
                 st.session_state.page = "Request Form"
                 st.rerun()
-            if st.button("📋 My Requests", use_container_width=True):  # , width='stretch'):
+            if st.button("📋 My Requests", use_container_width=True): 
                 st.session_state.page = "My Requests"
                 st.rerun()
 
@@ -2106,8 +2096,8 @@ def eform_page():
             if 'page' not in st.session_state:
                 st.session_state.page = "Home"
 
-                # -------DAILY QUOTES BANNER --------
-
+        
+# -------DAILY QUOTES BANNER --------
         def get_daily_quote():
             hour_of_day = datetime.now().hour
             return DAILY_QUOTES[hour_of_day % len(DAILY_QUOTES)]
@@ -2231,11 +2221,11 @@ def eform_page():
 
             with col_left:
                 st.markdown("#### 🖨️ Machine Appearance")
-                st.image("static/machine.PNG", caption="3D Printer Machine", width='stretch')
+                st.image("static/machine.png", caption="3D Printer Machine", width='stretch')
 
             with col_right:
                 st.markdown("#### 📋 Technical Specifications")
-                st.image("static/spec.PNG", caption="Machine Specifications", width='stretch')
+                st.image("static/spec.png", caption="Machine Specifications", width='stretch')
 
         with tab2:
             st.markdown("---")
@@ -2510,13 +2500,7 @@ def eform_page():
     # ======================== REQUEST FORM ===========================
     elif st.session_state.page == "Request Form":
         user_df = load_user_data(USER_FILE)
-        #print("loading user data", user_df)
-        # st.write("All headers:", st.context.headers)
         current_email = get_logged_in_user()
-        #current_email = "joemathew.john@infineon.com"
-        #st.write(f"Logged in as {current_email}")
-        # read user data csv
-        # find the email
 
         st.session_state.current_email = current_email
         st.session_state.user_df = user_df
@@ -2564,7 +2548,7 @@ def eform_page():
 
             uploaded_file = st.file_uploader(
                 "📎 Upload 3D File Attachment",
-                type=['dwg', 'stl', 'pptx', 'pdf', 'png', 'jpg', 'jpeg'],
+                type=['dwg', 'stl', 'pptx', 'pdf', 'png', 'JPG', 'jpeg'],
                 key="attachment_upload")
 
             agree = st.checkbox("✅ I confirm that the information provided is correct.")
@@ -2624,15 +2608,11 @@ def eform_page():
 
         df = load_Requests()
         user_df = load_user_data(USER_FILE)
-        #print("loading user data", user_df)
-
-
         current_email = get_logged_in_user()
         #current_email = "joemathew.john@infineon.com"
         st.session_state.user_df=""
         st.session_state.current_email =""
         st.session_state.current_role=""
-        #st.write("Email:", current_email)
         st.session_state.current_email=current_email
         st.session_state.user_df = user_df
 
@@ -3073,6 +3053,8 @@ def eform_page():
     )
 
 # -------------------------------------Main Page--------------------------------------------------------------
+st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
+
 pages = {
     "Home": landing_page,
     "Data System Monitoring": data_system_monitoring_page,
@@ -3082,6 +3064,7 @@ pages = {
 }
 
 st.sidebar.title("**BE DEV Dashboard**")
+
 with st.sidebar:
     selected_dash = option_menu(
         menu_title=None,
@@ -3092,7 +3075,6 @@ with st.sidebar:
     )
 
 pages[selected_dash]()
-
 st.markdown(
     """
     <style>
