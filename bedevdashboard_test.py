@@ -2,33 +2,35 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from datetime import datetime
 from streamlit_extras.add_vertical_space import add_vertical_space
+from streamlit_extras.colored_header import colored_header
 import os
+import requests
 import mimetypes
 from decouple import Config, RepositoryEnv
-from smb.SMBConnection import SMBConnection
+import smbclient
+from smb.SMBConnection import *
 import socket
 import io
 import pandas as pd
 from datetime import datetime, timedelta
+import os
+import getpass
 import win32com.client
-import pythoncom
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 import json
 import ssl
 from typing import Optional
 import sys
 from email.mime.base import MIMEBase
 from email import encoders
-import html
-import sys
-from smb.SMBConnection import SMBConnection
-
+import pythoncom
 
 # =============== CONFIGURATION ===========================
-COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details", "Status",
-"Status Start Time", "Quantity", "Material", "Color", "Completed Date", "Status History", "Admin Comments"]
+COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details",
+           "Status", "Status Start Time", "Quantity", "Material", "Color", "Completed Date", "Status History", "Admin Comments"]
 
 USER_COLUMNS = ["User_ID", "Username", "Requestor_email", "Role", "Domain", "Active"]
 Category_OPTIONS = ["Innovation", "Spare Part Replacement", "YIP/Improvement", "Others"]
@@ -58,7 +60,7 @@ USER_FILE= "static/user_data.csv"
 # Setting up connection with shared drive
 try:
     conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
-    ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
+    ip_address = socket.gethostbyname(serverName)
     print(conn.connect(ip_address, 139))
 except Exception as e:
     st.error(f"Failed to connect to shared drive: {e}")
@@ -70,7 +72,7 @@ def load_Requests():
     try:
         read_buffer = io.BytesIO()
         conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName, use_ntlm_v2=True)
-        ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
+        ip_address = socket.gethostbyname(serverName)
         print(conn.connect(ip_address, 139))
 
         # Retrieve file binary from file share into the buffer
@@ -191,7 +193,7 @@ class SMTPTester:
                     self.smtp_port,
                     context=context) as server:
                 if self.require_auth:
-                    server.login(self.sender_email, self.sender_password) if self.sender_password else None
+                    server.login(self.sender_email, self.sender_password)
                 server.sendmail(
                     self.sender_email,
                     recipient_email,
@@ -202,7 +204,7 @@ class SMTPTester:
                     context = ssl.create_default_context()
                     server.starttls(context=context)
                 if self.require_auth:
-                    server.login(self.sender_email, self.sender_password) if self.sender_password else None
+                    server.login(self.sender_email, self.sender_password)
                 server.sendmail(
                     self.sender_email,
                     recipient_email,
@@ -231,7 +233,7 @@ class SMTPTester:
                         context=context
                 ) as server:
                     if self.require_auth:
-                        server.login(self.sender_email, self.sender_password) if self.sender_password else None
+                        server.login(self.sender_email, self.sender_password)
                     print(f"✓ Successfully connected to {self.smtp_server}: {self.smtp_port}")
                     return True
             else:
@@ -240,7 +242,7 @@ class SMTPTester:
                         context = ssl.create_default_context()
                         server.starttls(context=context)
                     if self.require_auth:
-                        server.login(self.sender_email, self.sender_password) if self.sender_password else None
+                        server.login(self.sender_email, self.sender_password)
                     print(f"✓ Successfully connected to {self.smtp_server}: {self.smtp_port}")
                     return True
         except smtplib.SMTPAuthenticationError:
@@ -252,22 +254,6 @@ class SMTPTester:
         except Exception as e:
             print(f"✗ Connection error: {e}")
             return False
-        
-def normalize_Requestor_email(emails):
-    if not emails:
-        return []
-    if isinstance(emails, str):
-        return [e.strip() for e in emails.split(',') if e.strip()]
-    if isinstance(emails, list):
-        return [str(e).strip() for e in emails if str(e).strip()]
-    return [str(emails).strip()]
-
-def is_valid_Requestor_email(emails):
-    email_list = normalize_Requestor_email(emails)
-    for email in email_list:
-        if '@' not in email or '.' not in email.split('@')[-1]:
-            return False
-    return True
 
 def send_email_notification(send_to,password, email_subject, body_html, uploaded_file=None):
     """Main function to run SMTP tests."""
@@ -308,15 +294,16 @@ def send_email_notification(send_to,password, email_subject, body_html, uploaded
     uploaded_file=uploaded_file)
     if success:
         print("\n✓ All tests passed successfully!")
-
     else:
         print("\n✗ Email sending failed.")
+
 
 def ensure_file_exists(file_path):
     if not os.path.exists(file_path):
         os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
         cols = COLUMNS if "Requests" in file_path else USER_COLUMNS
         pd.DataFrame(columns=cols).to_excel(file_path, index=False)
+
 
 def clean_dataframe(df, columns):
     """Unified data cleaning pipeline"""
@@ -336,20 +323,19 @@ def clean_dataframe(df, columns):
                 df[col] = 1
             else:
                 df[col] = ''
-
     return df
+
 
 def get_logged_in_user():
     headers = st.context.headers
     email_get=headers.get("X-Forwarded-Email")
-    email_get= email_get.strip().lower() if email_get else None
+    email_get= email_get.strip().lower()
     return email_get
 
-def load_user_data(csv_path=USER_FILE):
-    full_path = os.path.abspath(csv_path)
-    df = pd.read_csv(full_path, encoding='utf-8')
-    print("Original columns:", df.columns.tolist())
-    # Normalize (this avoids 90% of bugs)
+def load_user_data(csv_path):
+    df = pd.read_csv(csv_path, encoding='utf-8', sep=';')
+    print("Columns found:", df.columns.tolist())
+
     df["Username"] = df["Username"].astype(str).str.strip().str.lower()
     df["Requestor_email"] = df["Requestor_email"].astype(str).str.strip().str.lower()
     return df
@@ -363,171 +349,159 @@ def get_email_from_username(username, df):
     return None
 
 
-st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
+# --- Landing Page Function ---
+st.set_page_config(
+    page_title="BE DEV Dashboard",
+    page_icon="💻",
+    layout="wide"
+)
+
+# CSS
+st.markdown("""
+<style>
+
+.stApp {
+    background-color: #F5F7FA;
+}
+
+.hero {
+    background: #0A8276;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    color: white;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #0A8276;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    transition: .2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+.section-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #0F172A;
+    margin: 20px 0;
+}
+
+.description {
+    color: #475569;
+    line-height: 1.7;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+def create_card(title, text):
+    st.markdown(f"""
+    <div class="card">
+        <h3>{title}</h3>
+        <p>{text}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 def landing_page():
-    # Hero Section
+    # Hero
     st.markdown("""
-    <div style="text-align: center; padding: 60px 20px; 
-                background: linear-gradient(135deg, #0A8276 0%, #094f48 100%); 
-                border-radius: 20px; color: white; margin-bottom: 50px;">
-        <h1 style="font-size: 3.2rem; font-weight: 500; margin-bottom: 10px;">
-            <strong>Welcome to BE DEV Dashboard</strong>
-        </h1>
-        <p style="font-size: 1.45rem; opacity: 0.92; max-width: 800px; margin: 0 auto;">
-            Your Central Hub for Development Resources
-        </p>
+    <div class="hero">
+        <h1>🚀 Welcome to BE DEV Dashboard</h1>
+        <p>Your Central Hub for Development Resources</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Description Section 
-    st.markdown("""
-    <div style="max-width: 1000px; margin: 0 auto; padding: 0 20px;">
-        <p style="font-size: 1.15rem; line-height: 1.8; color: #333; text-align: justify;">
-            BE DEV Dashboard is a comprehensive and intuitive platform designed to centralize all vital 
-            resources for the Development team. In today's fast-paced environment, having immediate access to 
-            critical links, comprehensive documentation, and essential tools is paramount. 
-            <strong>Our mission is to eliminate the time wasted searching for dispersed information</strong>, 
-            allowing you to focus on innovation and productivity.
-        </p>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Key Features Section
+    # Features
     st.markdown("---")
-    st.markdown('<h2 class="key-features-header">Key Features</h2>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-title">Key Features</h3>', unsafe_allow_html=True)
 
-    carousel_html = """
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <style>
-        .swiper {
-            padding: 100px 0;
-        }
-        .feature-slide {
-            text-align: center;
-            padding: 5px;
-        }
-        .feature-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            height: 100%;
-            transition: all 0.4s ease;
-        }
-        .feature-card:hover {
-            transform: translateY(-12px);
-            box-shadow: 0 25px 55px rgba(10,130,118,0.2);
-        }
-        .feature-icon {
-            font-size: 5.5rem;
-            margin-bottom: 25px;
-            color: #0A8276;
-        }
-        .feature-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #1e2937;
-            margin-bottom: 15px;
-        }
-        .swiper-button-next, .swiper-button-prev {
-            color: #0A8276;
-        }
-        .swiper-pagination-bullet-active {
-            background: #0A8276;
-        }
-    </style>
+    features = [
+        ("📈 Data Monitoring",
+         "Access DEVSPACE, PV and NICA monitoring reports with detailed analytics, "
+         "performance trends, and usage statistics."),
 
-    <div class="swiper mySwiper">
-        <div class="swiper-wrapper">
-            <div class="swiper-slide feature-slide">
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3 class="feature-title">Data System Monitoring</h3>
-                    <p>Monthly monitoring reports (DEVSPACE, PV, NICA) with detailed analytics.</p>
-                </div>
-            </div>
+        ("📚 Training & Knowledge",
+         "Empower yourself with a comprehensive library of general training resources "
+         "and unit process training materials, SOP and knowledge base."),
 
-            <div class="swiper-slide feature-slide">
-                <div class="feature-card">
-                    <div class="feature-icon">📚</div>
-                    <h3 class="feature-title">Training & Knowledge</h3>
-                    <p>Comprehensive library of training materials and process knowledge.</p>
-                </div>
-            </div>
-
-            <div class="swiper-slide feature-slide">
-                <div class="feature-card">
-                    <div class="feature-icon">🛠️</div>
-                    <h3 class="feature-title">Development Tools</h3>
-                    <p>Centralized access to all essential development tools and applications.</p>
-                </div>
-            </div>
-        </div>
+        ("🛠️ Dev Tools",
+         "Quick access to internal applications and development tools. "
+         "Our searchable directory helps utilities and collaboration platforms"),
         
-        <!-- Navigation Buttons -->
-        <div class="swiper-button-next"></div>
-        <div class="swiper-button-prev"></div>
-        <div class="swiper-pagination"></div>
+        ("📊 3D Core e-form",
+        "Overview of detail information about process workflow, project status "
+        "and request updates using 3D printing machine e-form")
+    ]
+
+    cols = st.columns(len(features))
+
+    for col, (title, desc) in zip(cols, features):
+        with col:
+            create_card(title, desc)
+
+    # Overview
+    st.markdown("---")
+    st.markdown('<h3 class="section-title">About Dashboard</h3>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="description">
+        <p class="description-text">
+        BE DEV Dashboard is a comprehensive and intuitive platform designed to centralize all vital
+        resources for the Development team. In today's fast-paced environment, having immediate access to
+        critical links, comprehensive documentation, and essential tools is paramount. Our mission is to
+        eliminate the time wasted searching for dispersed information, allowing you to focus on innovation
+        and productivity.
+        This platform acts as a unified gateway, simplifying your daily workflow by bringing together everything
+        from real-time system monitoring reports to an extensive library of training materials and a curated
+        selection of development tools. We believe that by providing a streamlined and efficient information
+        hub, we can significantly enhance the collective performance and collaborative spirit of our team.
+        </p>
     </div>
+    """, unsafe_allow_html=True)
 
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script>
-        var swiper = new Swiper(".mySwiper", {
-            slidesPerView: 1,
-            spaceBetween: 10,
-            loop: true,
-            autoplay: {
-                delay: 5000,
-                disableOnInteraction: false,
-            },
-            navigation: {
-                nextEl: ".swiper-button-next",
-                prevEl: ".swiper-button-prev",
-            },
-            pagination: {
-                el: ".swiper-pagination",
-                clickable: true,
-            },
-            breakpoints: {
-                640: { slidesPerView: 2 },
-                1024: { slidesPerView: 3 }
-            }
-        });
-    </script>
-    """
 
-    import streamlit.components.v1 as components
-    components.html(carousel_html, height=480)  
+
+
+
+
 
 
 # ------------------------Data System Monitoring----------------------------------------
-month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+               "November", "December"]
 
 image_dict = {
     "DEVSPACE": {
         year: {
-            month: f"DEVSPACE_{month_names[month - 1]}_{year}.JPG"
+            month: f"DEVSPACE_{month_names[month - 1]}_{year}.jpg"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
     },
     "NICA": {
         year: {
-            month: f"NICA_{month_names[month - 1]}_{year}.JPG"
+            month: f"NICA_{month_names[month - 1]}_{year}.jpg"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
     },
     "PV": {
         year: {
-            month: f"PV_{month_names[month - 1]}_{year}.JPG"
+            month: f"PV_{month_names[month - 1]}_{year}.jpg"
             for month in range(1, 13)
         }
         for year in range(2023, 2050)
     }
 }
+
 
 def show_report_month():
     st.header("Data System Monitoring")
@@ -546,54 +520,44 @@ def show_report_month():
 
     report_year = st.selectbox("Select Year", range(this_year, this_year - 3, -1), key="box8")
     report_month_str = st.radio(
-        "Select Month", month_names, index=this_month - 3, horizontal=True
+        "Select Month", month_names, index=this_month - 1, horizontal=True
     )
     print(" report_month_str", report_month_str)
-    report_month = month_names.index(report_month_str) + 1  # Convert month name to month number
-    return report_year, report_month_str
-
+    report_month = month_names.index(report_month_str) + 1
+    return report_year, report_month, report_month_str
 
 
 # ---------------------------------Data System Monitoring---------------------------------------------------
 def data_system_monitoring_page():
-    report_year, report_month_str = show_report_month()
+    report_year, report_month, report_month_str = show_report_month()
     try:
-      if conn is not None:
-        try:
-            with open('static/devsmets.JPG', "wb") as dev_im_temp:
-                res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(str(folderName), f'DEVSPACE_{report_month_str}_{report_year}.JPG'), dev_im_temp) 
-        except FileNotFoundError:
-            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
-            return  # Exit the function if the image is not found
-        try:                                                 
-            with open('static/pv.JPG', "wb") as pv_im_temp:
-                res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                f'PV_{report_month_str}_{report_year}.JPG'), pv_im_temp)
-        except FileNotFoundError:
-            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
-            return  # Exit the function if the image is not found
-
-        try:
-            with open('static/nica.JPG', "wb") as nica_im_temp:
-                res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(str(folderName),
-                f'NICA_{report_month_str}_{report_year}.JPG'), nica_im_temp)
-        except FileNotFoundError:
-            st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
-            return  # Exit the function if the image is not found
+        with open('static/devsmets.jpg', "wb") as dev_im_temp:
+            res1_attributes, res1size = conn.retrieveFile(shareName, os.path.join(folderName,
+                                                                                  f'DEVSPACE_{report_month_str}_{report_year}.jpg'),
+                                                          dev_im_temp)
+        with open('static/pv.jpg', "wb") as pv_im_temp:
+            res2_attributes, res2size = conn.retrieveFile(shareName, os.path.join(folderName,
+                                                                                  f'PV_{report_month_str}_{report_year}.jpg'),
+                                                          pv_im_temp)
+        with open('static/nica.jpg', "wb") as nica_im_temp:
+            res3_attributes, res3size = conn.retrieveFile(shareName, os.path.join(folderName,
+                                                                                  f'NICA_{report_month_str}_{report_year}.jpg'),
+                                                          nica_im_temp)
 
         st.markdown("---")
         st.subheader(f"Devspace Monthly Monitoring report for {report_month_str}")
-        st.image('static/devsmets.JPG')  
+        st.image('static/devsmets.jpg')  # Display image from the static folder
         st.markdown("---")
         st.subheader(f"PV Monthly Monitoring report for {report_month_str}")
-        st.image('static/pv.JPG')  
+        st.image('static/pv.jpg')  # Display image from the static folder
         st.markdown("---")
         st.subheader(f"NICA Monthly Monitoring report for {report_month_str}")
-        st.image('static/nica.JPG') 
-    except FileNotFoundError:
+        st.image('static/nica.jpg')  # Display image from the static folder
+    except OperationFailure:
         st.info(f":red[Image for Data systems **'{report_month_str} {report_year}'** is not yet available.]")
 
     print(os.getcwd())
+    # st.subhe # Removed: Incomplete line
 
 
 # ------------------------DEV Training---------------------------------------------------------
@@ -645,7 +609,9 @@ def display_resources(resources, unique_key_prefix=""):
                     else:
                         cols[j].error(f"Material not found: {file_path}")
 
+
 def training_page():
+    # Inject CSS for animations and styling
     st.markdown(
         """
         <style>
@@ -816,10 +782,6 @@ def training_page():
         """,
         unsafe_allow_html=True
     )
-    # Link to Font Awesome for icons
-    st.markdown(
-        '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">',
-        unsafe_allow_html=True)
 
     # --- General Training Resources Section ---
     st.header("General Training Resources")
@@ -957,8 +919,6 @@ def training_page():
 
     # Iterate through each process and create an expander for each
     for i, (process_name, materials_dict) in enumerate(process_training_materials.items()):
-        # IMPORTANT: Removed 'key' argument from st.expander due to common TypeError in older Streamlit versions.
-        # If you are on Streamlit 1.14.0 or newer, you can re-add `key=f"expander_{process_name.replace(' ', '_')}_{i}"`
         with st.expander(f"**{process_name} Training**", expanded=False):
             if not materials_dict:
                 st.info(f"red:[No training materials available for {process_name} at this time.]")
@@ -994,67 +954,13 @@ def training_page():
 
 
 # ---------------------------------Dev Tools---------------------------------------------------------------------------
-links = {
-    "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
-    "MY LEAVE": {"link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", "icon": "paper-plane"},
-    "MY IT": {"link": "https://webnetprod.muc.infineon.com/MyIT/", "icon": "windows"},
-    "PICTURE VIEWER": {"link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", "icon": "image"},
-    "Opcenter Portal (CAMSTAR Setup)": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
-    "Opcenter Shopfloor (CAMSTAR UI)": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
-    "KLUSA": {"link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", "icon": "code"},
-    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", "icon": "calendar"},
-    "RDE Dashboard": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
-    "PBC with PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
-    "FMEA": {"link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", "icon": "table"},
-    "BAT OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
-    "BAT Attire & Locker": {"link": "https://apps.bth.infineon.com/attiresystem", "icon": "user"},
-    "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
-    "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
-    "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
-    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "wrench"},
-    "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
-    "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
-    "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
-    "iFAct": {"link": "https://ifact.sin.infineon.com/myjobs", "icon": "flask"},
-    "BAT Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
-    "Opcenter ODS Report (BAT)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
-    "inSig (AOI Log Data) " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
-    "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
-    "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
-    "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
-    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "users"},
-    "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
-    "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
-    "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
-    "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},
-    "IP Portal": {"link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", "icon": "fa fa-lightbulb"},
-    "SPIRAL": {"link": "https://spiral.muc.infineon.com/spiral", "icon": "spinner"},
-    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "comment"},
-    "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
-    "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
-    "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
-    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb"},
-    "NOSTAS Request" : {"link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", "icon": "file-text"},
-    "MyMD" : {"link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", "icon": "barcode"},
-    "iProjEx" : {"link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", "icon": "key"},
-    "Team Center" : {"link": "https://teamcenterhome.infineon.com/nermal.shtml", "icon": "star"},
-    "Basic Evaluation in Automated Test System (BEATS)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", "icon" : "building"},
-    "Component Task Tracking (CTT)": {"link": "https://ctt.intra.infineon.com/RequestAccess", "icon" : "tasks"},
-    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"},
-    "RAVEN": {"link": "https://raven.icp.infineon.com/", "icon" : "shield-alt"},
-    "FOL Magazine Check": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", "icon" : "clipboard-check"},
-    "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
-    "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
-}
-
 def dev_tools_page():
     st.markdown(
         '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">',
         unsafe_allow_html=True)
 
     st.header("Development Tools")
-    st.write(
-        "Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
+    st.write("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
 
     # Search
     search_query = st.text_input("**Search Tools**:", "", placeholder="Cari nama tool...", key="dev_search")
@@ -1144,26 +1050,60 @@ def dev_tools_page():
                     </a>
                 ''', unsafe_allow_html=True)
 
-st.markdown(
-    """
-    <style>
-    /* ... your existing CSS for global, top-header-bar, tool-card, etc. ... */
 
-    /* New CSS for the logo */
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 50px; /* Add some space below the logo */
-    }
-    .dev-tools-logo {
-        width: 300px; /* Adjust the size as needed */
-        height: center;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# ---------------------------------Dev Tools---------------------------------------------------------------------------
+links = {
+    "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
+    "MY LEAVE": {"link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", "icon": "paper-plane"},
+    "MY IT": {"link": "https://webnetprod.muc.infineon.com/MyIT/", "icon": "windows"},
+    "PICTURE VIEWER": {"link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", "icon": "image"},
+    "Opcenter Portal (CAMSTAR Setup)": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
+    "Opcenter Shopfloor (CAMSTAR UI)": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
+    "KLUSA": {"link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", "icon": "code"},
+    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", "icon": "calendar"},
+    "RDE Dashboard": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
+    "PBC with PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
+    "FMEA": {"link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", "icon": "table"},
+    "BAT OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
+    "BAT Attire & Locker": {"link": "https://apps.bth.infineon.com/attiresystem", "icon": "user"},
+    "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
+    "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
+    "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
+    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "wrench"},
+    "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
+    "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
+    "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
+    "iFAct": {"link": "https://ifact.sin.infineon.com/myjobs", "icon": "flask"},
+    "BAT Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
+    "Opcenter ODS Report (BAT)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
+    "inSig (AOI Log Data) " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
+    "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
+    "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
+    "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
+    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "users"},
+    "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
+    "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
+    "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
+    "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},
+    "IP Portal": {"link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", "icon": "fa fa-lightbulb"},
+    "SPIRAL": {"link": "https://spiral.muc.infineon.com/spiral", "icon": "spinner"},
+    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "comment"},
+    "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
+    "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
+    "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
+    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb"},
+    "NOSTAS Request" : {"link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", "icon": "file-text"},
+    "MyMD" : {"link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", "icon": "barcode"},
+    "iProjEx" : {"link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", "icon": "key"},
+    "Team Center" : {"link": "https://teamcenterhome.infineon.com/nermal.shtml", "icon": "star"},
+    "Basic Evaluation in Automated Test System (BEATS)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", "icon" : "building"},
+    "Component Task Tracking (CTT)": {"link": "https://ctt.intra.infineon.com/RequestAccess", "icon" : "tasks"},
+    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"},
+    "RAVEN": {"link": "https://raven.icp.infineon.com/", "icon" : "shield-alt"},
+    "FOL Magazine Check": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", "icon" : "clipboard-check"},
+    "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
+    "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
+}
 
 
 # ----------------------3D Core e-form Page------------------------------------------------------
@@ -1192,7 +1132,6 @@ def eform_page():
                     df[col] = 1
                 else:
                     df[col] = ''
-
         return df
 
     @st.cache_data(ttl=2)
@@ -1202,7 +1141,7 @@ def eform_page():
             read_buffer = io.BytesIO()
             conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName,
                                  use_ntlm_v2=True)
-            ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
+            ip_address = socket.gethostbyname(serverName)
             print(conn.connect(ip_address, 139))
 
             # Retrieve file binary from file share into the buffer
@@ -1224,41 +1163,25 @@ def eform_page():
 
     def save_user_data(df):
         try:
-            df.to_excel(USER_FILE, index=False)
+            df.to_excel(USER_FILE, index=False,
+                        sep=';', encoding='utf-8')
             return True
         except Exception as e:
             st.error(f"Error saving user data: {e}")
             return False
         
-    def normalize_Requestor_email(emails):
-        """Mengubah input email menjadi list yang bersih"""
-        if emails is None:
-            return []
-        if isinstance(emails, str):
-            return [e.strip() for e in emails.split(',') if e.strip()]
-        if isinstance(emails, list):
-            return [str(e).strip() for e in emails if str(e).strip()]
-        return [str(emails).strip()]
-
-
-    def is_valid_Requestor_email(emails):
-        """Validasi email sederhana"""
-        if not emails:
-            return False
-        
-        email_list = normalize_Requestor_email(emails)
-        
-        for email in email_list:
-            if '@' not in email or '.' not in email.split('@')[-1]:
-                return False
-        return True
-    @st.cache_data(ttl=300)
+    import re
+    def normalize_Requestor_email(email):  
+        return email.strip().lower()
+    def is_valid_Requestor_email(email):    
+        pattern = r'^[A-Za-z0-9._%+-]+@infineon\.com$'   
+        return re.match(pattern, email) is not None
     
     def send_outlook_Requestor_email(to_Requestor_emails, subject, html_body, attach=None):
         try:
             if not to_Requestor_emails:
                 return False, "Recipient email is required."
-            to_Requestor_emails = normalize_Requestor_email(to_Requestor_emails)
+            to_Requestor_emails = normalize_Requestor_email(to_Requestor_emails) 
             if not is_valid_Requestor_email(to_Requestor_emails):
                 return False, "Invalid email address"
 
@@ -1281,9 +1204,10 @@ def eform_page():
             print(f"[EMAIL] Failed: {e}")
             return False, f"Failed to send email: {e}"
 
+    import html
 
-
-    def create_enhanced_new_request_html(record_id, requestor, requestor_email, category, details, quantity=1, material='N/A', color='N/A', target_date=None):
+    def create_enhanced_new_request_html(record_id, requestor, requestor_email, category, details, quantity=1,
+                                         material='N/A', color='N/A', target_date=None):
         """Enhanced responsive HTML for new request notifications"""
         target_date_str = target_date.strftime('%d %B %Y') if target_date else datetime.now().strftime('%d %B %Y')
         safe_details = html.escape(str(details))[:800] + ("..." if len(str(details)) > 800 else "")
@@ -1429,10 +1353,15 @@ def eform_page():
             user_df = load_user_data(USER_FILE)
             #print("loading user data", user_df)
             admin_df = user_df[user_df['Role'].str.lower() == 'admin']
+            admin_emails = ( 
+                            admin_df["Requestor_email"]    
+                            .dropna()    
+                            .unique()   
+                            .tolist()
+                            )
+            #admin_emails =["Rahmad.Hardiansyah@infineon.com", "Catur.Pranoto@infineon.com", "SitiHanafiNilam.Sari@infineon.com", "joemathew.john@infineon.com"]
 
-            admin_emails =["Rahmad.Hardiansyah@infineon.com", "Catur.Pranoto@infineon.com", "SitiHanafiNilam.Sari@infineon.com", "joemathew.john@infineon.com"]
-
-            #admin_emails = ["joemathew.john@infineon.com"]
+            admin_emails = ["sitihanafinilam.sari@infineon.com"]
             target_date_str = target_date.strftime('%d/%m/%Y') if target_date else datetime.now().strftime('%d/%m/%Y')
 
             safe_details = html.escape(str(details))[:500]
@@ -1532,6 +1461,9 @@ def eform_page():
     </body>
     </html>
             """
+            print(html_body[:1000])
+            with open("test_email.html", "w", encoding="utf-8") as f:   
+                f.write(html_body)
             #result = send_outlook_Requestor_email(
             #    to_Requestor_emails=admin_emails,  # "; ".join(admin_emails),
             #    subject=f"🖨️ NEW REQUEST #{record_id} - {requestor} - {category}",
@@ -1670,7 +1602,7 @@ def eform_page():
             # Pre-process data in batch
             conn = SMBConnection(username=user, password=password, my_name="icp", remote_name=serverName,
                                 use_ntlm_v2=True)
-            ip_address = socket.gethostbyname(str(serverName) if serverName else "localhost")
+            ip_address = socket.gethostbyname(serverName)
             print(conn.connect(ip_address, 139))
             df_clean = df.copy()
             print("printing df before saving request", df_clean.head())
@@ -1840,8 +1772,8 @@ def eform_page():
 
                 if save_Requests(df):
 
-                    current_email = get_logged_in_user()
-                    #current_email = "joemathew.john@infineon.com"
+                    #current_email = get_logged_in_user()
+                    current_email = "sitihanafinilam.sari@infineon.com"
                     st.write("Email:", current_email)
                     requestor_email = current_email
 
@@ -1851,7 +1783,6 @@ def eform_page():
                         new_status=new_status,
                         old_status=old_status,
                         admin_comment=admin_comment)
-
 
 
                     msg = f"Status updated to {new_status}"
@@ -2048,14 +1979,16 @@ def eform_page():
         full_html = "".join(html_parts)
         st.html(full_html)
 
+    # ========================= MAIN APP =========================
+    # st.set_page_config(page_title="3D Core e-form", layout="wide", page_icon="🖨️")
 
     # ====================== IDENTIFIKASI USER & ROLE ======================
     #Username = getpass.getuser().lower()  -- this wont work in Openshift
     user_df = load_user_data(USER_FILE)
     #print("loading user data", user_df)
     #st.write("All headers:", st.context.headers)
-    current_email=get_logged_in_user()
-    #current_email = "joemathew.john@infineon.com"
+    #current_email=get_logged_in_user()
+    current_email = "sitihanafinilam.sari@infineon.com"
     st.write(f"Logged in as {current_email}")
     # read user data csv
     # find the email
@@ -2070,15 +2003,19 @@ def eform_page():
     print("role_match", role_match)
     if not role_match.empty:
         st.session_state.current_role= role_match.iloc[0]["Role"]
+        #print("role", st.session_state.current_role)
+
+    #else:
+        # ====================== SIDEBAR ======================
         with st.sidebar:
             st.image(image='static/logo.png')
-            if st.button("🏠 Home", use_container_width=True):  
+            if st.button("🏠 Home", use_container_width=True):  # , width='stretch'):
                 st.session_state.page = "Home"
                 st.rerun()
-            if st.button("📝 New Request", use_container_width=True): 
+            if st.button("📝 New Request", use_container_width=True):  # , width='stretch'):, width='stretch'):
                 st.session_state.page = "Request Form"
                 st.rerun()
-            if st.button("📋 My Requests", use_container_width=True): 
+            if st.button("📋 My Requests", use_container_width=True):  # , width='stretch'):
                 st.session_state.page = "My Requests"
                 st.rerun()
 
@@ -2096,8 +2033,8 @@ def eform_page():
             if 'page' not in st.session_state:
                 st.session_state.page = "Home"
 
-        
-# -------DAILY QUOTES BANNER --------
+                # -------DAILY QUOTES BANNER --------
+
         def get_daily_quote():
             hour_of_day = datetime.now().hour
             return DAILY_QUOTES[hour_of_day % len(DAILY_QUOTES)]
@@ -2221,11 +2158,11 @@ def eform_page():
 
             with col_left:
                 st.markdown("#### 🖨️ Machine Appearance")
-                st.image("static/machine.png", caption="3D Printer Machine", width='stretch')
+                st.image("static/machine.PNG", caption="3D Printer Machine", width='stretch')
 
             with col_right:
                 st.markdown("#### 📋 Technical Specifications")
-                st.image("static/spec.png", caption="Machine Specifications", width='stretch')
+                st.image("static/spec.PNG", caption="Machine Specifications", width='stretch')
 
         with tab2:
             st.markdown("---")
@@ -2500,7 +2437,13 @@ def eform_page():
     # ======================== REQUEST FORM ===========================
     elif st.session_state.page == "Request Form":
         user_df = load_user_data(USER_FILE)
-        current_email = get_logged_in_user()
+        #print("loading user data", user_df)
+        # st.write("All headers:", st.context.headers)
+        #current_email = get_logged_in_user()
+        current_email = "sitihanafinilam.sari@infineon.com"
+        #st.write(f"Logged in as {current_email}")
+        # read user data csv
+        # find the email
 
         st.session_state.current_email = current_email
         st.session_state.user_df = user_df
@@ -2548,7 +2491,7 @@ def eform_page():
 
             uploaded_file = st.file_uploader(
                 "📎 Upload 3D File Attachment",
-                type=['dwg', 'stl', 'pptx', 'pdf', 'png', 'JPG', 'jpeg'],
+                type=['dwg', 'stl', 'pptx', 'pdf', 'png', 'jpg', 'jpeg'],
                 key="attachment_upload")
 
             agree = st.checkbox("✅ I confirm that the information provided is correct.")
@@ -2608,11 +2551,15 @@ def eform_page():
 
         df = load_Requests()
         user_df = load_user_data(USER_FILE)
-        current_email = get_logged_in_user()
-        #current_email = "joemathew.john@infineon.com"
+        #print("loading user data", user_df)
+
+
+        #current_email = get_logged_in_user()
+        current_email = "sitihanafinilam.sari@infineon.com"
         st.session_state.user_df=""
         st.session_state.current_email =""
         st.session_state.current_role=""
+        #st.write("Email:", current_email)
         st.session_state.current_email=current_email
         st.session_state.user_df = user_df
 
@@ -2625,7 +2572,7 @@ def eform_page():
         if df.empty:
             st.info("No requests found.")
         else:
-            my_requests = df[df['Requestor_email'].str.lower() == st.session_state.current_email.lower() if st.session_state.current_email else None]
+            my_requests = df[df['Requestor_email'].str.lower() == st.session_state.current_email.lower()]
             for _, row in my_requests.iterrows():
                 with st.expander(f"#{row['No']} | {row['Status']}", expanded=False):
                     dynamic_progress_tracker(row)
@@ -2656,8 +2603,8 @@ def eform_page():
         st.markdown("<h1>🛠️ Admin Panel</h1>", unsafe_allow_html=True)
         st.markdown("---")
 
-        current_email = get_logged_in_user()
-        #current_email = "joemathew.john@infineon.com"
+        #current_email = get_logged_in_user()
+        current_email = "sitihanafinilam.sari@infineon.com"
         #st.write("Email:", current_email)
         st.session_state.current_email = current_email
 
@@ -2775,8 +2722,8 @@ def eform_page():
     # ======================== USER MANAGEMENT ===========================
     elif st.session_state.page == "User Management":
 
-        current_email = get_logged_in_user()
-        #current_email = "joemathew.john@infineon.com"
+        #current_email = get_logged_in_user()
+        current_email = "sitihanafinilam.sari@Infineon.com"
         # st.write("Email:", current_email)
         st.session_state.current_email = current_email
         if st.session_state.current_email not in ["sitihanafinilam.sari@Infineon.com", "Rahmad.Hardiansyah@infineon.com", "Catur.Pranoto@infineon.com"]:
@@ -2798,7 +2745,7 @@ def eform_page():
                 st.session_state.show_add_user = True
                 st.rerun()
 
-                # Filter data
+        # Filter data
         user_df = st.session_state.user_df.copy()
         if search_term:
             mask = (
@@ -2850,8 +2797,7 @@ def eform_page():
                         st.session_state.show_delete_dialog = True
                         st.rerun()
 
-                        # ==================== DIALOG FUNCTIONS ====================
-
+# ==================== DIALOG FUNCTIONS ====================
         @st.dialog("➕ Add New User")
         def add_user_dialog():
             with st.form("add_form"):
@@ -2906,8 +2852,8 @@ def eform_page():
                                              index=0 if row['Role'] == "User" else 1, key="box2")
 
                 if st.form_submit_button("💾 Save Changes", type="primary"):
-                    st.session_state.user_df.at[idx, 'Username'] = edit_name.strip() if edit_name else row['Username']
-                    st.session_state.user_df.at[idx, 'Requestor_email'] = edit_email.strip() if edit_email else row['Requestor_email']
+                    st.session_state.user_df.at[idx, 'Username'] = edit_name.strip()
+                    st.session_state.user_df.at[idx, 'Requestor_email'] = edit_email.strip()
                     st.session_state.user_df.at[idx, 'Role'] = edit_role
 
                     if save_user_data(st.session_state.user_df):
@@ -2950,8 +2896,8 @@ def eform_page():
 
     # ===================== ACTIVITY LOG =====================
     elif st.session_state.page == "Activity Log":
-        current_email = get_logged_in_user()
-        #current_email = "joemathew.john@infineon.com"
+        #current_email = get_logged_in_user()
+        current_email = "sitihanafinilam.sari@Infineon.com"
         # st.write("Email:", current_email)
         st.session_state.current_email = current_email
         if st.session_state.current_email not in ["sitihanafinilam.sari@Infineon.com",
@@ -3053,8 +2999,6 @@ def eform_page():
     )
 
 # -------------------------------------Main Page--------------------------------------------------------------
-st.set_page_config(page_title="BE DEV Dashboard", page_icon=":computer:", layout="wide")
-
 pages = {
     "Home": landing_page,
     "Data System Monitoring": data_system_monitoring_page,
@@ -3064,7 +3008,6 @@ pages = {
 }
 
 st.sidebar.title("**BE DEV Dashboard**")
-
 with st.sidebar:
     selected_dash = option_menu(
         menu_title=None,
@@ -3075,6 +3018,7 @@ with st.sidebar:
     )
 
 pages[selected_dash]()
+
 st.markdown(
     """
     <style>
@@ -3088,3 +3032,12 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+
+
+
+
+
+
+
