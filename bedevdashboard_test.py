@@ -27,6 +27,7 @@ import sys
 from email.mime.base import MIMEBase
 from email import encoders
 import pythoncom
+import html
 
 # =============== CONFIGURATION ===========================
 COLUMNS = ["No", "Parent_No", "Request Date", "Target Date", "Requestor", "Requestor_email", "Category", "Details",
@@ -421,9 +422,9 @@ def landing_page():
     """, unsafe_allow_html=True)
 
     # Features
-    st.markdown("---")
+    st.subheader("")
     st.markdown('<h3 class="section-title">Key Features</h3>', unsafe_allow_html=True)
-
+    
     features = [
         ("📈 Data Monitoring",
          "Access DEVSPACE, PV and NICA monitoring reports with detailed analytics, "
@@ -449,7 +450,7 @@ def landing_page():
             create_card(title, desc)
 
     # Overview
-    st.markdown("---")
+    st.subheader("")
     st.markdown('<h3 class="section-title">About Dashboard</h3>', unsafe_allow_html=True)
     st.markdown("""
     <div class="description">
@@ -473,10 +474,9 @@ def landing_page():
 
 
 
-
-# ------------------------Data System Monitoring----------------------------------------
-month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-               "November", "December"]
+# --- Data System Monitoring ---
+month_names = ["January", "February", "March", "April", "May", "June", "July", 
+               "August", "September", "October", "November", "December"]
 
 image_dict = {
     "DEVSPACE": {
@@ -505,7 +505,7 @@ image_dict = {
 
 def show_report_month():
     st.header("Data System Monitoring")
-    st.write(
+    st.caption(
         "DEV Dashboard is a comprehensive monitoring platform designed to provide real-time insights and tracking of system performance. "
         "By integrating essential tools and resources into a centralized interface, the platform ensures seamless access to critical data, enabling Development teams to optimize their workflows and maintain system health. "
         "With DEV Dashboard, teams can monitor key metrics, identify potential issues, and take proactive measures to ensure uninterrupted system operations. This consolidated approach not only enhances efficiency but also supports data-driven decision-making for improved system reliability and performance."
@@ -953,159 +953,703 @@ def training_page():
                     st.warning("Material not found.")
 
 
-# ---------------------------------Dev Tools---------------------------------------------------------------------------
+# -----------------Dev Tools------------------
+tools = {
+    "IFX INTRANET": {
+        "link": "https://intranet.infineon.com/", 
+        "icon": "home",
+        "category" : "General",
+        "description" : "Open Infineon internal portal and company information."
+        },
+
+    "IFX Worldwide Packages": {
+        "link": "https://www.infineon.com/cms/en/product/packages/", 
+        "icon": "microchip",
+        "category" : "General",
+        "description" : "Open worldwide package-related information."
+        },
+
+    "GPT4IFX": {
+        "link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", 
+        "icon": "comment",
+        "category" : "General",
+        "description" : "Open internal AI assistant or productivity tools."
+        },
+
+    "DocJockey": {
+        "link": "https://docjockey.icp.infineon.com/environment/1", 
+        "icon": "comment",
+        "category" : "General",
+        "description" : "Corporate AI assistant for Infineon."
+        },
+
+    "Abbreviation Finder": {
+        "link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", 
+        "icon" : "search",
+        "category" : "General",
+        "description" : "Search internal abbreviations and meanings"
+        },
+
+    "Lab Manager": {
+        "link": "https://labmanager.intra.infineon.com/register", 
+        "icon" : "flask",
+        "category" : "General",
+        "description" : "R&D Lab Management Service"
+        },
+
+    "IP Portal": {
+        "link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", 
+        "icon": "lightbulb",
+        "category" : "Inovation",
+        "description" : "IP Application platform"
+        },
+
+    "BAT OE APPLICATION": {
+        "link": "https://oe.bth.infineon.com/", 
+        "icon": "trophy",
+        "category" : "General",
+        "description" : "Operational Excellence Dashboard for BAT related activities."
+        },
+
+    "BAT ESH APPLICATION": {
+        "link": "https://hsse.bth.infineon.com/", 
+        "icon": "medkit",
+        "category" : "General",
+        "description" : "Access environment, safety, and health-related application."
+        },
+
+    "MY LEAVE": {
+        "link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", 
+        "icon": "paper-plane",
+        "category" : "Administrative",
+        "description" : "Submit, view, or manage leave information."
+        },
+
+    "MY IT": {
+        "link": "https://webnetprod.muc.infineon.com/MyIT/", 
+        "icon": "windows",
+        "category" : "Administrative",
+        "description" : "IT support and service requests."       
+        },
+
+    "BAT Permission System": {
+        "link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", 
+        "icon": "unlock-alt",
+        "category" : "Administrative",
+        "description" : "Request or manage access permission for BAT systems."
+        },
+
+    "BAT Attire & Locker": {
+        "link": "https://apps.bth.infineon.com/attiresystem", 
+        "icon": "user",
+        "category" : "Administrative",
+        "description" : "Manage attire and locker-related administrative needs."
+        },
+
+    "YIP" : {
+        "link": "https://yiphlp56.intra.infineon.com:8443/app/", 
+        "icon": "lightbulb",
+        "category" : "Administrative",
+        "description" : "For submitting 'Your Idea Pay' or improvement platform."
+        },
+
+    "CONCUR": {
+        "link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", 
+        "icon": "plane",
+        "category" : "Administrative",
+        "description" : "Application for Business Travel and Claims"
+        },
+
+    "VISIT - Visitor/Preregister Visit": {
+        "link": "https://visitor-management.infineon.com/", 
+        "icon": "users",
+        "category" : "Administrative",
+        "description" : "Register visitors or preregister visit activities."
+        },
+
+    "CT300 Request": {
+        "link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", 
+        "icon": "clipboard",
+        "category" : "Administrative",
+        "description" : "Submit or monitor DEV CT300 related requests."
+        },
+
+    "NOSTAS Request" : {
+        "link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", 
+        "icon": "file-text",
+        "category" : "Administrative",
+        "description" : "For submitting BE DEV NOSTAS form."
+        },
+
+    "FOL Magazine Check": {
+        "link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", 
+        "icon" : "clipboard-check",
+        "category" : "Administrative",
+        "description" : "Check FOL magazine-related report or validation status."
+        },
+
+    "BE Equipment Integration Request eForm": {
+        "link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", 
+        "icon" : "file-contract",
+        "category" : "Administrative",
+        "description" : "For submitting Equipment Integration form."
+        },
+
+    "PICTURE VIEWER": {
+        "link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", 
+        "icon": "image",
+        "category" : "Digitalization of Process Data",
+        "description" : "Non structured centralized database for BE DEV"
+        },
+
+    "Opcenter Portal (CAMSTAR Setup)": {
+        "link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", 
+        "icon": "paste",
+        "category" : "Digitalization of Process Data",
+        "description" : "Access setup and configuration data from Opcenter/CAMSTAR."
+        },
+
+    "Opcenter Shopfloor (CAMSTAR UI)": {
+        "link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", 
+        "icon": "database",
+        "category" : "Digitalization of Process Data",
+        "description" : "Actual CAMSTAR Manufacturing Exection System (MES)"
+        },
+
+    "NICA": {
+        "link": "https://nica.icp.infineon.com/en/search", 
+        "icon":"check-square",
+        "category" : "Digitalization of Process Data",
+        "description" : "Digital platform for e-Perfect Setup for BE DEV machines"
+        },
+
+    "ICRuM": {
+        "link": "http://prodtest.bth.infineon.com:8081/login", 
+        "icon": "calculator",
+        "category" : "Digitalization of Process Data",
+        "description" : "Application process result UPH request."
+        },
+
+    "iFAct": {
+        "link": "https://ifact.sin.infineon.com/myjobs", 
+        "icon": "flask",
+        "category" : "Digitalization of Process Data",
+        "description" : "Application and result for Failure Analysis (FA) Jobs"
+        },
+
+    "inSig (AOI Log Data)" : {
+        "link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", 
+        "icon": "search",
+        "category" : "Digitalization of Process Data",
+        "description" : "Review AOI log data, UPH prediction for FAV inspection-related insights."
+        },
+
+    "IDPF/SDHB Documents": {
+        "link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", 
+        "icon": "map",
+        "category" : "Digitalization of Process Data",
+        "description" : "Infineon Development Process Framework / System Development HandBook document references."
+        },
+
+    "e-Archive": {
+        "link": "https://efilestore.bth.infineon.com/earchive_retrieval/Searching.aspx", 
+        "icon": "wrench",
+        "category" : "Digitalization of Process Data",
+        "description" : "eFileStore used to extract FAV lot data"
+        },
+
+    "Component Task Tracking (CTT)": {
+        "link": "https://ctt.intra.infineon.com/RequestAccess", 
+        "icon" : "tasks",
+        "category" : "Digitalization of Process Data",
+        "description" : "Track component-related tasks and follow-up actions."
+        },
+
+    "PDR+ V1.0": {
+        "link": "https://pdr-plus-prd.icp.infineon.com/", 
+        "icon": "file",
+        "category" : "Insight & Report",
+        "description" : "Automated standardized PDR creation with details data reporting and tracking platform. "
+        },
+
+    "BAT Tableau Report": {
+        "link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", 
+        "icon": "list-ul",
+        "category" : "Insight & Report",
+        "description" : "Curated Tableau CAMSTAR reports on BAT Operations reporting and analysis."
+        },
+
+    "BAT Opcenter ODS Report": {
+        "link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", 
+        "icon": "list",
+        "category" : "Insight & Report",
+        "description" : "View Opcenter ODS reports for CAMSTAR data monitoring."
+        },
+
+    "OEE Report": {
+        "link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", 
+        "icon": "gear",
+        "category" : "Insight & Report",
+        "description" : "Monitor equipment effectiveness and performance reporting."
+        },
+
+    "Statistical Platform": {
+        "link": "https://rbgxv673.rbg.infineon.com/statistics/", 
+        "icon": "line-chart",
+        "category" : "Insight & Report",
+        "description" : "Analyze data using Quality's statistical tools and platforms."
+        },
+
+    "SPIRAL": {
+        "link": "https://spiral.muc.infineon.com/spiral", 
+        "icon": "spinner",
+        "category" : "Insight & Report",
+        "description" : "Access internal data or workflow for CAMSTAR transactions platforms."
+        },
+
+    "BEATS": {
+        "link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", 
+        "icon" : "building",
+        "category" : "Insight & Report",
+        "description" : "Backend Equipment Auto Time Study for internal data evaluation and time study information. "
+        },
+
+    "HALO": {
+        "link": "https://haloprd.icp.infineon.com/", 
+        "icon": "globe",
+        "category" : "Insight & Report",
+        "description" : "Digital platform support for auto process mapping tool and investigation"
+        },
+
+    "DEVSMETS": {
+        "link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", 
+        "icon": "calendar",
+        "category" : "Planning & Scheduling",
+        "description" : "JIRA tracking of planning & schedulling project builds for Process Development"
+        },
+
+    "Equipment Reservation Tool": {
+        "link": "https://ertprod.bth.infineon.com/ert/", 
+        "icon": "lock",
+        "category" : "Planning & Scheduling",
+        "description" : "Application for reserve equipment for operational PROD machine time."
+        },
+
+    "PDA Wafer Inventory": {
+        "link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", 
+        "icon": "inbox",
+        "category" : "Planning & Scheduling",
+        "description" : "Application for check Wafer inventory information and status."
+        }, 
+
+    "MyMD" : {
+        "link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", 
+        "icon": "barcode",
+        "category" : "Planning & Scheduling",
+        "description" : "Access BE DEV Material database and tracking data."
+        },
+
+    "RAVEN": {
+        "link": "https://raven.icp.infineon.com/", 
+        "icon" : "shield-alt",
+        "category" : "Project Management",
+        "description" : "Rapid Analysis, Visualization and Exploration of New Trends"
+        },
+
+    "KLUSA": {
+        "link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", 
+        "icon": "code",
+        "category" : "Project Management",
+        "description" : "Project report and TACC platforms."
+        },
+
+    "RDE Dashboard": {
+        "link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", 
+        "icon": "folder-open",
+        "category" : "Project Management",
+        "description" : "Project Office guideline on project systematic"
+        },
+
+    "FMEA": {
+        "link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", 
+        "icon": "table",
+        "category" : "Project Management",
+        "description" : "Risk Assessment and Mitigation framework for Failure Mode and Effects Analysis documentations."
+        },
+
+    "PLATO" : {
+        "link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", 
+        "icon": "bookmark",
+        "category" : "Project Management",
+        "description" : "Digital platform for systematic tool of FMEA."
+        },
+
+    "iProjEx" : {
+        "link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", 
+        "icon": "key",
+        "category" : "Project Management",
+        "description" : "Manage NPI tool for project execution and tracking for A-projects."
+        },
+
+    "Team Center" : {
+        "link": "https://teamcenterhome.infineon.com/nermal.shtml", 
+        "icon": "star",
+        "category" : "Project Management",
+        "description" : "Access Teamcenter data and project-related information Change Management for GCMs."
+        },
+
+    "PBC with PBHB": {
+        "link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", 
+        "icon": "book",
+        "category" : "Unit Process Management",
+        "description" : "Process Block Catalogue with its Hand Book platforms."
+        },
+
+    "PLM Publishing": {
+        "link": "https://plmpublishing.icp.infineon.com/searchtable", 
+        "icon": "eye",
+        "category" : "Unit Process Management",
+        "description" : "Access publishing and lifecycle management information."
+        },
+
+    "DEV Tooling System": {
+        "link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", 
+        "icon": "wrench",
+        "category" : "Unit Process Management",
+        "description" : "DEV Spare Part, Cabinet and Tooling tracking system."
+        }
+}
+
+
+
+
 def dev_tools_page():
+    # Font Awesome
     st.markdown(
         '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">',
-        unsafe_allow_html=True)
+        unsafe_allow_html=True
+    )
 
-    st.header("Development Tools")
-    st.write("Dev tools bring together different applications and data in one place, increasing developer efficiency and productivity")
+    st.markdown("""
+        <div class="dev-hero">
+            <div>
+                <h1>Development Tools</h1>
+                <p>
+                    Dev tools bring together different applications and data in one place,
+                    increasing developer efficiency and productivity.
+                </p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Search
-    search_query = st.text_input("**Search Tools**:", "", placeholder="Cari nama tool...", key="dev_search")
+    search_query = st.text_input(
+        "**Search Tools**:",
+        "",
+        placeholder="Cari nama tool...",
+        key="dev_search"
+    )
     search_lower = search_query.lower().strip()
 
-    # ================== KATEGORI ==================
-    categories = {
-        "Unit Process Management": ["DEV Tooling System", "Opcenter Portal (CAMSTAR Setup)",
-                                    "Opcenter Shopfloor (CAMSTAR UI)", "BAT OE APPLICATION", "iFAct", "ICRuM"],
-        "Digitalization of Process Data": ["NICA", "PLM Publishing", "inSig (AOI Log Data) ", "PDR+ V1.0", "HALO",
-                                           "BE Equipment Integration Request eForm", "Component Task Tracking (CTT)"],
-        "Insight & Report": ["BAT Tableau URL", "Opcenter ODS Report (BAT)", "OEE Report", "Statistical Platform",
-                             "Basic Evaluation in Automated Test System (BEAST)", "FOL Magazine Check"],
-        "Administrative": ["MY LEAVE", "MY IT", "BAT Attire & Locker", "BAT Permission System", "ESH APPLICATION",
-                           "CONCUR", "VISIT - Visitor/Preregister Visit", "Equipment Reservation Tool", "YIP"],
-        "Project Management": ["KLUSA", "FMEA", "PBC with PBHB", "PLATO", "iProjEx", "Team Center", "RDE Dashboard"],
-        "Planning & Scheduling": ["DEVSMETS", "MyMD", "PDA Wafer Inventory", "DEV CT300 Request", "NOSTAS Request"],
-        "General": ["IFX INTRANET", "PICTURE VIEWER", "IDPF/SDHB Documents", "IFX Worldwide Packages", "IP Portal",
-                    "GPT4IFX", "SPIRAL", "RAVEN", "Abbreviation Finder", "Lab Manager"]
-    }
 
-    # CSS Tambahan untuk Card Lebih Besar & Lega
+
+
+    from collections import defaultdict
+
+    categories = defaultdict(list)
+
+    for tool_name, tool_data in tools.items():
+        categories[tool_data["category"]].append(tool_name)
+
+    # ================== CSS ==================
     st.markdown("""
     <style>
+        .dev-hero {
+            background: linear-gradient(135deg, #0A8276, #006838, #003b2f);
+            color: white;
+            padding: 30px 34px;
+            border-radius: 22px;
+            margin-bottom: 25px;
+            box-shadow: 0 14px 35px rgba(0, 104, 56, 0.25);
+            animation: heroFade 0.8s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dev-hero::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            right: -70px;
+            top: -70px;
+            animation: floatBubble 4s ease-in-out infinite;
+        }
+
+        .dev-hero h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .dev-hero p {
+            font-size: 1rem;
+            max-width: 850px;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .category-title {
+            background: linear-gradient(135deg, #0A8276, #006838);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 14px;
+            margin: 34px 0 18px 0;
+            font-weight: 800;
+            font-size: 1.45rem;
+            box-shadow: 0 8px 22px rgba(10, 130, 118, 0.22);
+            animation: slideIn 0.5s ease;
+        }
+
+        .tool-link {
+            display: block;
+            text-decoration: none !important;
+            color: inherit !important; 
+            height: 100%
+        }
+
+        .tool-link:hover {
+            text-decoration:none !important;
+            color: inherit !important;       
+        }        
+
         .tool-card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 28px 16px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 20px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
+            padding: 22px 18px;
             text-align: center;
-            height: 190px;
+            height: 270px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            border: 1px solid #e0e0e0;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            transition: all 0.35s ease;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 22px;
+            position: relative;
+            overflow: hidden;
         }
-        .tool-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-            border-color: #006838;
-        }
-        .tool-card .icon-wrapper {
-            font-size: 52px;
-            color: #0A8276;
-            margin-bottom: 18px;
-        }
-        .tool-card .tool-name {
-            font-size: 1.05rem;
-            font-weight: 600;
+
+        .tool-name {
+            font-size: 1.05srem;
+            font-weight: 800;
             color: #1f2937;
-            line-height: 1.8;
+            line-height: 1.25;
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-desc {
+            font-size: 0.86rem;
+            color: #6b7280;
+            line-height: 1.35;
+            height: 58px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .tool-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent,
+                rgba(10, 130, 118, 0.12),
+                transparent
+            );
+            transition: all 0.6s ease;
+        }
+
+        .tool-card:hover::before {
+            left: 100%;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px) scale(1.025);
+            box-shadow: 0 16px 34px rgba(0, 104, 56, 0.22);
+            border-color: #0A8276;
+        }
+
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e6f7f4, #d9f2ec);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            transition: all 0.35s ease;
+        }
+
+        .tool-card:hover .icon-circle {
+            background: linear-gradient(135deg, #0A8276, #006838);
+            transform: rotate(6deg) scale(1.08);
+        }
+
+        .icon-circle i {
+            font-size: 40px;
+            color: #0A8276;
+            transition: all 0.35s ease;
+        }
+
+        .tool-card:hover .icon-circle i {
+            color: white;
+            animation: iconPulse 0.8s ease infinite alternate;
+        }
+
+        .tool-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1f2937;
+            line-height: 1.35;
+            margin-bottom: 10px;
+        }
+
+        .tool-desc {
+            font-size: 1.0rem;
+            color: #6b7280;
+            line-height: 1.35;
+            min-height: 42px;
+            margin-bottom: 10px;
+        }
+
+        .empty-box {
+            padding: 22px;
+            border-radius: 16px;
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            font-weight: 700;
+            margin-top: 20px;
+        }
+
+        @keyframes heroFade {
+            from {
+                opacity: 0;
+                transform: translateY(-14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes iconPulse {
+            from {
+                transform: scale(1);
+            }
+            to {
+                transform: scale(1.15);
+            }
+        }
+
+        @keyframes floatBubble {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(18px);
+            }
+        }
+
+        @media screen and (max-width: 900px) {
+            .tool-card {
+                height: 230px;
+            }
+
+            .dev-hero h1 {
+                font-size: 1.8rem;
+            }
         }
     </style>
     """, unsafe_allow_html=True)
 
-    # Tampilkan Kategori
+    # ================== DISPLAY TOOLS ==================
+    found_any = False
+
     for cat_name, tool_list in categories.items():
-        filtered_tools = [name for name in tool_list if name in links and
-                          (not search_lower or search_lower in name.lower())]
+        filtered_tools = [
+            name for name in tool_list
+            if name in tools and (
+                not search_lower 
+                or search_lower in name.lower()
+            )
+        ]
 
         if not filtered_tools:
             continue
 
-        st.markdown(f"""
-            <div style="background:#0A8276; color:white; padding:14px 22px; border-radius:12px; 
-                        margin: 32px 0 18px 0; font-weight:700; font-size:1.6rem;">
-                {cat_name}
-            </div>
-        """, unsafe_allow_html=True)
+        found_any = True
+
+        safe_cat = html.escape(cat_name)
+
+        st.markdown(
+            f'<div class="category-title">{safe_cat}</div>',
+            unsafe_allow_html=True
+        )
 
         cols = st.columns(4)
+
         for idx, name in enumerate(filtered_tools):
-            data = links[name]
+            data = tools[name]
+
             icon = data.get("icon", "wrench")
-            link_url = data["link"]
+            link_url = data.get("link", "#")
+            desc = data.get("description" or "Open this tools") 
+                    
+            safe_name = html.escape(name)
+            safe_desc = html.escape(desc)
+            safe_icon = html.escape(icon)
+            safe_url = html.escape(link_url, quote=True)
+
 
             with cols[idx % 4]:
-                st.markdown(f'''
-                    <a href="{link_url}" target="_blank" style="text-decoration: none;">
+                st.markdown(f"""
+                    <a href="{safe_url}" target="_blank" class="tool-link">
                         <div class="tool-card">
-                            <i class="fa fa-{icon} icon-wrapper"></i>
-                            <span class="tool-name">{name}</span>
+                            <div class="icon-circle">
+                                <i class="fa-solid fa-{safe_icon}"></i>
+                            </div>
+                            <div class="tool-name">{safe_name}</div>
+                            <div class="tool-desc">{safe_desc}</div>
                         </div>
                     </a>
-                ''', unsafe_allow_html=True)
-
-
-# ---------------------------------Dev Tools---------------------------------------------------------------------------
-links = {
-    "IFX INTRANET": {"link": "https://intranet.infineon.com/", "icon": "home"},
-    "MY LEAVE": {"link": "https://sappeslb.sap.infineon.com/sap/bc/ui5_ui5/sap/z_leaverequest/index.html", "icon": "paper-plane"},
-    "MY IT": {"link": "https://webnetprod.muc.infineon.com/MyIT/", "icon": "windows"},
-    "PICTURE VIEWER": {"link": "https://pictureviewer-bedev.infineon.com:8080/viewpictures", "icon": "image"},
-    "Opcenter Portal (CAMSTAR Setup)": {"link": "https://opcenter.bth.infineon.com/OpcenterPortal/default.htm#/login", "icon": "paste"},
-    "Opcenter Shopfloor (CAMSTAR UI)": {"link": "https://opcenter.bth.infineon.com/OpcenterWeb/login", "icon": "database"},
-    "KLUSA": {"link": "https://klusa4.intra.infineon.com/klusa_ifx_projects/klusaweb/", "icon": "code"},
-    "DEVSMETS": {"link": "https://jiradc.intra.infineon.com/secure/Dashboard.jspa?selectPageId=31412", "icon": "calendar"},
-    "RDE Dashboard": {"link": "https://ishare.infineon.com/sites/BE_DEV_PO/SitePages/BE%20RDE%20Project%20Office.aspx", "icon": "folder-open"},
-    "PBC with PBHB": {"link": "https://intranet-content.infineon.com/explore/operations/TechnologyExcellence/ComplexityManagement/ProcessBlockCatalogPBC/Pages/index_en.aspx", "icon": "book"},
-    "FMEA": {"link": "https://intranet-content.infineon.com/explore/aboutinfineon/QM/QMProcesses/FMEA/SitePages/index_en.aspx", "icon": "table"},
-    "BAT OE APPLICATION": {"link": "https://oe.bth.infineon.com/", "icon": "trophy"},
-    "BAT Attire & Locker": {"link": "https://apps.bth.infineon.com/attiresystem", "icon": "user"},
-    "BAT Permission System": {"link": "https://apps.bth.infineon.com/Pms_System/Permission_NonShopfloor.aspx", "icon": "unlock-alt"},
-    "NICA": {"link": "https://nica.icp.infineon.com/en/search", "icon":"check-square"},
-    "PLM Publishing": {"link": "https://plmpublishing.icp.infineon.com/searchtable", "icon": "eye"},
-    "DEV Tooling System": {"link": "https://ishare.ap.infineon.com/sites/dev-dashboard/Shared%20Documents/IFBT_DEV_Spare-Part/IFBT_DEV_Spare_Part/Index.html", "icon": "wrench"},
-    "HALO": {"link": "https://haloprd.icp.infineon.com/", "icon": "globe"},
-    "PDR+ V1.0": {"link": "https://pdr-plus-prd.icp.infineon.com/", "icon": "file"},
-    "ICRuM": {"link": "http://prodtest.bth.infineon.com:8081/login", "icon": "calculator"},
-    "iFAct": {"link": "https://ifact.sin.infineon.com/myjobs", "icon": "flask"},
-    "BAT Tableau URL": {"link": "https://tableau.infineon.com/#/site/ITFI/views/Batam_Tableau_URL/BAT_Tableau_URL?:iid=1", "icon": "list-ul"},
-    "Opcenter ODS Report (BAT)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/MESReportToC/BATMESreportToC", "icon": "list"},
-    "inSig (AOI Log Data) " : {"link": "https://insig-productive-insig.ap-sg-1.icp.infineon.com/", "icon": "search"},
-    "ESH APPLICATION": {"link": "https://hsse.bth.infineon.com/", "icon": "medkit"},
-    "Equipment Reservation Tool": {"link": "https://ertprod.bth.infineon.com/ert/", "icon": "lock"},
-    "CONCUR": {"link": "https://us2.concursolutions.com/nui/signin/pwd?signedout=inactivity&lang=en", "icon": "plane"},
-    "VISIT - Visitor/Preregister Visit": {"link": "https://visitor-management.infineon.com/", "icon": "users"},
-    "IDPF/SDHB Documents": {"link": "https://webnetprod.muc.infineon.com/ecmweb/dctmpublish/gen0001_sdhb4/gen0001_sdhb4.asp", "icon": "map"},
-    "IFX Worldwide Packages": {"link": "https://www.infineon.com/cms/en/product/packages/", "icon": "microchip"},
-    "OEE Report": {"link": "https://tableau.infineon.com/#/site/ITFI/views/OEEReportforPOB/OEEStandardReport?:iid=1", "icon": "gear"},
-    "Statistical Platform": {"link": "https://rbgxv673.rbg.infineon.com/statistics/", "icon": "line-chart"},
-    "IP Portal": {"link": "https://ipms.infineon.com/ipms/AppIpms.jsp?is-smart", "icon": "fa fa-lightbulb"},
-    "SPIRAL": {"link": "https://spiral.muc.infineon.com/spiral", "icon": "spinner"},
-    "GPT4IFX": {"link": "https://outsystems-muc-prod.infineon.com/GPT4IFX/", "icon": "comment"},
-    "PDA Wafer Inventory": {"link": "https://ishare.ap.infineon.com/sites/WaferInventory/_layouts/15/WopiFrame2.aspx?sourcedoc=%7B15E1B4C2-181F-4369-9D79-7B9DF9366547%7D&file=PDA%20Wafer%20List%20DC26.xlsx&action=default", "icon": "inbox"},
-    "DEV CT300 Request": {"link": "https://ishare.ap.infineon.com/sites/CT300WI/_layouts/15/WopiFrame.aspx?sourcedoc=%7B6de387d2-7b2d-4833-bf31-2b536d89ebe4%7D&action=default&slrid=3c338ca1-ddb1-8088-c64f-28eeb8c7d0f5", "icon": "clipboard"},
-    "PLATO" : {"link": "https://mucsa1446.infineon.com/e1ns/portal/#action=clearFilter&cmd=CMD_E1ns_start_page", "icon": "bookmark"},
-    "YIP" : {"link": "https://yiphlp56.intra.infineon.com:8443/app/", "icon": "lightbulb"},
-    "NOSTAS Request" : {"link": "https://workflowgenerator.infineon.com/portal/DEV_NOSTAS_Request_eForm/home", "icon": "file-text"},
-    "MyMD" : {"link": "https://mat-database-devlogdatabase.ap-sg-1.icp.infineon.com/", "icon": "barcode"},
-    "iProjEx" : {"link": "https://plmapps.icp.infineon.com/iprojex/myItems/active", "icon": "key"},
-    "Team Center" : {"link": "https://teamcenterhome.infineon.com/nermal.shtml", "icon": "star"},
-    "Basic Evaluation in Automated Test System (BEATS)": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BEATSFINALREPORTV1/ActualvsPlanUPH/49d34c7e-0acb-48bb-8710-18226e22bd67/BEATSBAT?:iid=1", "icon" : "building"},
-    "Component Task Tracking (CTT)": {"link": "https://ctt.intra.infineon.com/RequestAccess", "icon" : "tasks"},
-    "Lab Manager": {"link": "https://labmanager.intra.infineon.com/register", "icon" : "flask"},
-    "RAVEN": {"link": "https://raven.icp.infineon.com/", "icon" : "shield-alt"},
-    "FOL Magazine Check": {"link": "https://tableau.infineon.com/#/site/ITFI/views/BTH_FOL_Magazine_Checking_Point/MagCheck?:iid=1", "icon" : "clipboard-check"},
-    "Abbreviation Finder": {"link": "https://rdtools.intra.infineon.com/AbbreviationFinder/#/search", "icon" : "search"},
-    "BE Equipment Integration Request eForm": {"link": "https://workflowgenerator.infineon.com/portal/EAF_BAT/home", "icon" : "file-contract"},
-}
-
-
+                """, unsafe_allow_html=True)
+                    
 # ----------------------3D Core e-form Page------------------------------------------------------
 def eform_page():
     def ensure_file_exists(file_path):
@@ -3001,43 +3545,45 @@ def eform_page():
 # -------------------------------------Main Page--------------------------------------------------------------
 pages = {
     "Home": landing_page,
-    "Data System Monitoring": data_system_monitoring_page,
+    "Data Monitoring": data_system_monitoring_page,
     "Training & Knowledge": training_page,
     "Dev Tools": dev_tools_page,
     "3D Core e-form": eform_page
 }
 
-st.sidebar.title("**BE DEV Dashboard**")
+#Sidebar
 with st.sidebar:
+    st.image("infineon_logo.png", use_container_width=True)
+    st.sidebar.title("**BE DEV Dashboard**")
     selected_dash = option_menu(
         menu_title=None,
         options=list(pages.keys()),
-        icons=["house", "database", "universal-access", "wrench", "printer"],
-        menu_icon="speedometer",
-        default_index=0
-    )
+        icons=["house", "database", "book", "tools", "printer"],
+        default_index=0,
+        styles={
+            "container": {
+                "padding": "0!important",
+                "background-color": "#FFFFFF" },
+            "icon": {
+                "color": "#0A8276",
+                "font-size": "22px" } })
+
+#CSS
+st.markdown("""
+<style>
+
+section[data-testid="stSidebar"] {
+    background-color:#E2E8F0;
+    border-right:1px solid #E2E8F0; }
+
+section[data-testid="stSidebar"] img {
+    display:block;
+    margin:auto; }
+
+</style>
+""", unsafe_allow_html=True)
 
 pages[selected_dash]()
-
-st.markdown(
-    """
-    <style>
-    section[data-testid="stSidebar"] {
-        width: 300px !important; # Adjust this value as needed
-        max-width: 300px !important; # Ensure it doesn't exceed this width
-        padding-left: 30px; # Optional: adjust padding if content is too close to edge
-        padding-right: 30px; # Optional: adjust padding
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-
-
-
-
 
 
 
