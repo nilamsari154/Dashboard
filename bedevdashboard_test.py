@@ -31,162 +31,90 @@ import re
 
 # ================= DATA FUNCTIONS =================
 def ensure_file_exists(file_path):
-        if not os.path.exists(file_path):
-            os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
-            cols = COLUMNS if "Requests" in file_path else USER_COLUMNS
-            pd.DataFrame(columns=cols).to_excel(file_path, index=False)
+    if os.path.exists(file_path):
+        return
 
+    folder = os.path.dirname(file_path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+
+    cols = COLUMNS if "Requests" in file_path else USER_COLUMNS
+
+    pd.DataFrame(columns=cols).to_excel(
+        file_path,
+        index=False
+    ) 
+
+def validate_email(email):
+
+    if not email:
+        return None
+
+    email = str(email).strip().lower()
+    pattern = r'^[A-Za-z0-9._%+-]+@infineon\.com$'
+
+    return email if re.match(pattern, email) else None
  
-def save_user_data(df):
-        try:
-            df.to_excel(USER_FILE, index=False,
-                        sep=';', encoding='utf-8')
-            return True
-        except Exception as e:
-            st.error(f"Error saving user data: {e}")
-            return False
-        
-def normalize_Requestor_email(email):  
-        return email.strip().lower()
-
-def is_valid_Requestor_email(email):    
-        pattern = r'^[A-Za-z0-9._%+-]+@infineon\.com$'   
-        return re.match(pattern, email) is not None
+def send_outlook_Requestor_email(to_email, subject, html_body, attach=None):   
+    if not to_email:
+        return False, "Recipient email is required"
     
-def send_outlook_Requestor_email(to_Requestor_emails, subject, html_body, attach=None):
+    to_email = validate_email(to_email) 
+    if not to_email:
+        return False, "Invalid email address"
+    
+    try:
+        pythoncom.CoInitialize()
+        ol = win32com.client.Dispatch("outlook.application")
+        newmail = ol.CreateItem(0)
+        newmail.Subject = subject
+        newmail.To = to_email
+        newmail.HTMLBody = html_body
+        if attach and os.path.exists(attach):
+            newmail.Attachments.Add(os.path.abspath(attach))
+        newmail.Send()
+        return True, "Email sent successfully!"
+    except Exception as e:
+        return False, f"Failed to send email: {e}"
+    finally:
         try:
-            if not to_Requestor_emails:
-                return False, "Recipient email is required."
-            to_Requestor_emails = normalize_Requestor_email(to_Requestor_emails) 
-            if not is_valid_Requestor_email(to_Requestor_emails):
-                return False, "Invalid email address"
-
-            pythoncom.CoInitialize()
-            ol = win32com.client.Dispatch("outlook.application")
-            newmail = ol.CreateItem(0)
-            newmail.Subject = subject
-            newmail.To = to_Requestor_emails
-            newmail.HTMLBody = html_body
-            if attach and os.path.exists(attach):
-                newmail.Attachments.Add(os.path.abspath(attach))
-            newmail.Send()
             pythoncom.CoUninitialize()
-            return True, "Email sent successfully!"
-        except Exception as e:
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                pass
-            print(f"[EMAIL] Failed: {e}")
-            return False, f"Failed to send email: {e}"
+        except:
+            pass
 
 
 def create_enhanced_new_request_html(record_id, requestor, requestor_email, category, details, quantity=1,
                                          material='N/A', color='N/A', target_date=None):
-        """Enhanced responsive HTML for new request notifications"""
-        target_date_str = target_date.strftime('%d %B %Y') if target_date else datetime.now().strftime('%d %B %Y')
-        safe_details = html.escape(str(details))[:800] + ("..." if len(str(details)) > 800 else "")
-
+        target_date_str = (target_date.strftime("%d %B %Y") if target_date else "Not Specified")
+        safe_details = (html.escape(str(details or "")))
         return f"""
+
     <!DOCTYPE html>
     <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New 3D Print Request #{record_id}</title>
-        <style>
-            * {{ box-sizing: border-box; }}
-            body {{ 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                margin: 0; padding: 0; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
-                line-height: 1.6; color: #2d3748;
-            }}
-            .container {{ max-width: 650px; margin: 20px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }}
-            .header {{ 
-                background: linear-gradient(135deg, #4299e1 0%, #3182ce 50%, #2b6cb0 100%); 
-                color: white; padding: 40px 30px; text-align: center; position: relative;
-            }}
-            .header::before {{ content: '🖨️'; font-size: 64px; display: block; margin-bottom: 15px; }}
-            .header h1 {{ margin: 0 0 10px; font-size: 36px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }}
-            .header-meta {{ font-size: 16px; opacity: 0.95; }}
-            .content {{ padding: 40px 35px; }}
-            .summary-grid {{ 
-                display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-                gap: 25px; margin: 30px 0; 
-            }}
-            .card {{ 
-                background: linear-gradient(145deg, #f7fafc, #edf2f7); 
-                padding: 25px; border-radius: 16px; text-align: center; 
-                border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-                transition: transform 0.3s ease;
-            }}
-            .card:hover {{ transform: translateY(-5px); }}
-            .card-icon {{ font-size: 32px; margin-bottom: 12px; }}
-            .card-label {{ font-weight: 700; color: #4a5568; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }}
-            .card-value {{ font-size: 24px; font-weight: 800; color: #2d3748; }}
-            .details-section {{ 
-                background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%); 
-                padding: 30px; border-radius: 16px; margin: 30px 0; 
-                border-left: 6px solid #48bb78;
-            }}
-            .details-section h2 {{ color: #22543d; margin-top: 0; font-size: 24px; }}
-            .detail-grid {{ display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 20px; }}
-            .detail-item {{ background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4299e1; }}
-            .detail-label {{ font-weight: 700; color: #4a5568; margin-bottom: 8px; }}
-            .detail-value {{ font-size: 16px; color: #2d3748; line-height: 1.5; }}
-            .status-badge {{ 
-                display: inline-block; background: linear-gradient(135deg, #48bb78, #38a169); 
-                color: white; padding: 12px 28px; border-radius: 50px; font-weight: 700; 
-                font-size: 16px; box-shadow: 0 8px 25px rgba(72,187,120,0.4); margin: 25px auto;
-            }}
-            .footer {{ 
-                background: #2d3748; color: #a0aec0; padding: 30px; text-align: center; font-size: 14px;
-            }}
-            @media (max-width: 600px) {{ 
-                .summary-grid {{ grid-template-columns: 1fr; }}
-                .detail-grid {{ grid-template-columns: 1fr; }}
-                .content {{ padding: 25px 20px; }}
-            }}
-        </style>
-    </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>New 3D Print Request #{record_id}</h1>
-                <p class="header-meta">Status: <strong>Under Review</strong> | {datetime.now().strftime('%d %B %Y %H:%M')}</p>
-            </div>
             <div class="content">
-                <p style="font-size: 18px; margin-bottom: 30px;">Hello 3D Printing Team,</p>
-                <p style="font-size: 16px; color: #4a5568;">A new request has been submitted. Please review the details below:</p>
+                <p style="font-size: 18px>Hello 3D Printing Team,</p>
+                <p>A new request has been submitted. Please review the details below:</p>
 
                 <div class="summary-grid">
                     <div class="card">
-                        <div class="card-icon">👤</div>
-                        <div class="card-label">Requestor</div>
-                        <div class="card-value">{requestor}</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon">📅</div>
                         <div class="card-label">Target Date</div>
                         <div class="card-value">{target_date_str}</div>
                     </div>
                     <div class="card">
-                        <div class="card-icon">📦</div>
                         <div class="card-label">Quantity</div>
                         <div class="card-value">{quantity}</div>
                     </div>
-                    <div class="card">
-                        <div class="card-icon">🎨</div>
+                    <div class="card">>
                         <div class="card-label">Material</div>
                         <div class="card-value">{material}</div>
                     </div>
-                    <div class="card">
-                        <div class="card-icon">🌈</div>
+                    <div class="card">v>
                         <div class="card-label">Color</div>
                         <div class="card-value">{color}</div>
                     </div>
                     <div class="card">
-                        <div class="card-icon">📂</div>
                         <div class="card-label">Category</div>
                         <div class="card-value">{category}</div>
                     </div>
